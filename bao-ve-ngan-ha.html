@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Bảo Vệ Ngân Hà - Luyện Bảng Cửu Chương</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  @keyframes pulse {
+    0%,100% { transform:scale(1); }
+    50% { transform:scale(1.08); }
+  }
+  @keyframes shake {
+    0%,100% { transform:translate(0,0); }
+    25% { transform:translate(-4px,2px); }
+    50% { transform:translate(4px,-2px); }
+    75% { transform:translate(-3px,-3px); }
+  }
+  @keyframes floatUp {
+    0% { transform:translateY(0); opacity:1; }
+    100% { transform:translateY(-40px); opacity:0; }
+  }
+  @keyframes bgDrift {
+    0% { background-position:0% 0%; }
+    100% { background-position:0% 100%; }
+  }
+  body {
+    background:#03040d;
+    font-family:'Segoe UI', Arial, sans-serif;
+    display:flex; flex-direction:column; align-items:center;
+    color:#dff6ff;
+    min-height:100vh;
+    overflow:hidden;
+    user-select:none;
+  }
+  #wrap {
+    position:relative;
+    margin-top:12px;
+  }
+  canvas {
+    background:radial-gradient(ellipse at 50% 0%, #0d1240 0%, #030308 70%);
+    border:2px solid #2b6bff;
+    border-radius:10px;
+    box-shadow:0 0 30px rgba(50,120,255,0.45), inset 0 0 60px rgba(20,40,120,0.4);
+    display:block;
+    touch-action:none;
+  }
+  canvas.shake { animation: shake 0.25s; }
+  #hud {
+    width:480px;
+    display:flex;
+    justify-content:space-between;
+    padding:8px 4px;
+    font-size:15px;
+    font-weight:700;
+    letter-spacing:0.5px;
+  }
+  #hud .box {
+    background:rgba(20,30,70,0.6);
+    border:1px solid rgba(120,160,255,0.3);
+    border-radius:8px;
+    padding:3px 10px;
+  }
+  #lives.hit { animation: shake 0.3s; color:#ff5a5a; }
+  #combo {
+    font-size:12px; font-weight:800; color:#ff9f4d;
+    text-shadow:0 0 8px rgba(255,150,60,0.8);
+    min-height:16px; text-align:center;
+  }
+  #problem {
+    font-size:36px;
+    font-weight:900;
+    text-align:center;
+    color:#ffe066;
+    text-shadow:0 0 16px rgba(255,224,102,0.85), 0 0 30px rgba(255,150,60,0.4);
+    margin:2px 0 0 0;
+    height:46px;
+    transition:transform 0.15s;
+  }
+  #problem.pop { animation: pulse 0.35s ease; }
+  #feedback {
+    position:absolute;
+    top:40%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    font-size:40px;
+    font-weight:900;
+    pointer-events:none;
+    opacity:0;
+    z-index:5;
+    text-shadow:0 0 20px currentColor;
+    white-space:nowrap;
+  }
+  #feedback.show {
+    animation: feedbackPop 0.7s ease forwards;
+  }
+  @keyframes feedbackPop {
+    0% { opacity:0; transform:translate(-50%,-50%) scale(0.5); }
+    20% { opacity:1; transform:translate(-50%,-50%) scale(1.15); }
+    35% { transform:translate(-50%,-50%) scale(1); }
+    100% { opacity:0; transform:translate(-50%,-60%) scale(1.05); }
+  }
+  #overlay {
+    position:absolute; inset:0;
+    background:rgba(2,4,16,0.9);
+    background-image: radial-gradient(circle at 20% 30%, rgba(80,60,180,0.25), transparent 40%),
+                       radial-gradient(circle at 80% 70%, rgba(40,120,255,0.25), transparent 40%);
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    text-align:center;
+    border-radius:8px;
+    gap:14px;
+    padding:20px;
+  }
+  #overlay h1 {
+    color:#7fd1ff; font-size:28px;
+    text-shadow:0 0 16px #2b6bff, 0 0 30px #7f4dff;
+    animation: pulse 2.2s ease-in-out infinite;
+  }
+  #overlay p { max-width:400px; line-height:1.5; font-size:14px; color:#b8d4ff; }
+  .tablesRow { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:420px; }
+  .tableBtn {
+    padding:6px 12px; border-radius:20px; border:1px solid #2b6bff;
+    background:#0d1a3d; color:#9fd0ff; cursor:pointer; font-weight:700; font-size:14px;
+    transition:all 0.15s;
+  }
+  .tableBtn:hover { transform:translateY(-2px); }
+  .tableBtn.active { background:#2b6bff; color:#fff; box-shadow:0 0 12px #2b6bff; }
+  button.big {
+    padding:12px 30px; font-size:17px; font-weight:800; border-radius:30px;
+    border:none; cursor:pointer;
+    background:linear-gradient(135deg,#2b6bff,#7f4dff);
+    color:#fff; box-shadow:0 0 20px rgba(80,120,255,0.6);
+    transition:transform 0.12s, box-shadow 0.12s;
+  }
+  button.big:hover { transform:scale(1.05); box-shadow:0 0 30px rgba(120,150,255,0.9); }
+  button.big:active { transform:scale(0.96); }
+  #hint { font-size:12px; color:#6a86b8; margin-top:2px; }
+  .iconBtn {
+    position:absolute; top:8px;
+    background:rgba(20,30,70,0.6); border:1px solid rgba(120,160,255,0.4);
+    border-radius:50%; width:34px; height:34px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:16px;
+    z-index:6;
+    transition:transform 0.12s, background 0.12s;
+  }
+  .iconBtn:hover { transform:scale(1.1); background:rgba(40,60,130,0.8); }
+  #soundToggle { right:10px; }
+  #pauseBtn { left:10px; }
+  #exitBtn { left:52px; }
+  #pauseOverlay {
+    position:absolute; inset:0;
+    background:rgba(2,4,16,0.92);
+    display:none; flex-direction:column;
+    align-items:center; justify-content:center;
+    text-align:center; border-radius:8px; gap:16px;
+    z-index:8;
+  }
+  #pauseOverlay h2 {
+    color:#7fd1ff; font-size:26px;
+    text-shadow:0 0 16px #2b6bff, 0 0 30px #7f4dff;
+  }
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div class="box">❤️ <span id="lives">3</span></div>
+  <div class="box">⭐ <span id="score">0</span></div>
+  <div class="box">🚀 Lv.<span id="level">1</span></div>
+</div>
+<div id="problem">6 × 7 = ?</div>
+<div id="combo"></div>
+
+<div id="wrap">
+  <canvas id="game" width="480" height="560"></canvas>
+  <div id="feedback"></div>
+  <div id="pauseBtn" class="iconBtn" title="Tạm dừng">⏸️</div>
+  <div id="exitBtn" class="iconBtn" title="Thoát">🚪</div>
+  <div id="soundToggle" class="iconBtn" title="Âm thanh">🔊</div>
+  <div id="pauseOverlay">
+    <h2>⏸️ TẠM DỪNG</h2>
+    <button class="big" id="resumeBtn">▶️ Tiếp Tục</button>
+    <button class="big" id="menuExitBtn" style="background:linear-gradient(135deg,#8a2b2b,#ff4d4d);">🚪 Thoát Về Menu</button>
+  </div>
+  <div id="overlay">
+    <h1>🌌 BẢO VỆ NGÂN HÀ</h1>
+    <p>Thiên thạch mang đáp án rơi xuống Trái Đất. Đọc phép tính phía trên, di chuyển tàu bằng <b>← →</b> (hoặc chạm/kéo) và bắn bằng <b>Space</b> (hoặc chạm màn hình) để tiêu diệt thiên thạch có đáp án đúng!</p>
+    <div>
+      <p style="margin-bottom:6px;font-weight:700;color:#ffe066;">Chọn bảng cửu chương muốn luyện:</p>
+      <div class="tablesRow" id="tableSelect"></div>
+    </div>
+    <button class="big" id="startBtn">🚀 Bắt Đầu</button>
+    <p id="hint">Bắn trúng số sai sẽ mất 1 mạng — cẩn thận! Đạt combo cao để nhân điểm 🔥</p>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+const livesEl = document.getElementById('lives');
+const scoreEl = document.getElementById('score');
+const levelEl = document.getElementById('level');
+const problemEl = document.getElementById('problem');
+const comboEl = document.getElementById('combo');
+const overlay = document.getElementById('overlay');
+const startBtn = document.getElementById('startBtn');
+const tableSelect = document.getElementById('tableSelect');
+const feedbackEl = document.getElementById('feedback');
+const soundToggle = document.getElementById('soundToggle');
+const hintEl = document.getElementById('hint');
+const pauseBtnEl = document.getElementById('pauseBtn');
+const exitBtnEl = document.getElementById('exitBtn');
+const pauseOverlayEl = document.getElementById('pauseOverlay');
+const resumeBtn = document.getElementById('resumeBtn');
+const menuExitBtn = document.getElementById('menuExitBtn');
+
+// ---- Sound (WebAudio synth, no files needed) ----
+let audioCtx = null;
+let soundOn = true;
+soundToggle.onclick = () => {
+  soundOn = !soundOn;
+  soundToggle.textContent = soundOn ? '🔊' : '🔇';
+};
+function ensureAudio(){
+  if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+}
+function beep(freq, dur, type='sine', vol=0.15, delay=0){
+  if (!soundOn) return;
+  ensureAudio();
+  const t0 = audioCtx.currentTime + delay;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t0);
+  gain.gain.setValueAtTime(vol, t0);
+  gain.gain.exponentialRampToValueAtTime(0.001, t0+dur);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(t0);
+  osc.stop(t0+dur);
+}
+function sfxShoot(){ beep(700,0.06,'square',0.06); }
+function sfxCorrect(streak){
+  beep(523,0.09,'triangle',0.18);
+  beep(784,0.12,'triangle',0.16,0.07);
+  if (streak>=3) beep(1046,0.14,'triangle',0.14,0.14);
+}
+function sfxWrong(){ beep(140,0.25,'sawtooth',0.18); beep(90,0.3,'sawtooth',0.14,0.05); }
+function sfxLifeLost(){ beep(200,0.4,'sawtooth',0.2); }
+function sfxLevelUp(){ beep(440,0.1,'triangle',0.15); beep(660,0.1,'triangle',0.15,0.1); beep(880,0.16,'triangle',0.18,0.2); }
+function sfxGameOver(){ beep(300,0.3,'sawtooth',0.2); beep(200,0.3,'sawtooth',0.2,0.2); beep(100,0.5,'sawtooth',0.2,0.4); }
+
+// ---- Table selection ----
+let selectedTables = new Set();
+for (let t=1; t<=10; t++){
+  const b = document.createElement('div');
+  b.className = 'tableBtn';
+  b.textContent = 'Bảng ' + t;
+  b.dataset.t = t;
+  b.onclick = () => {
+    if (selectedTables.has(t)) {
+      selectedTables.delete(t); b.classList.remove('active');
+    } else {
+      selectedTables.add(t); b.classList.add('active');
+    }
+    hintEl.style.color = '';
+  };
+  tableSelect.appendChild(b);
+}
+
+// ---- Starfield / nebula background (multi-layer parallax) ----
+let starsFar = [], starsMid = [], starsNear = [];
+for (let i=0;i<50;i++) starsFar.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1+0.3,s:0.15+Math.random()*0.1});
+for (let i=0;i<40;i++) starsMid.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.3+0.5,s:0.35+Math.random()*0.2});
+for (let i=0;i<25;i++) starsNear.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.8+0.8,s:0.7+Math.random()*0.3});
+
+let nebulae = [
+  {x:80, y:120, r:160, color:'rgba(120,60,220,0.10)', dx:0.05, dy:0.02},
+  {x:380, y:380, r:190, color:'rgba(30,140,255,0.10)', dx:-0.04, dy:0.03},
+  {x:200, y:480, r:140, color:'rgba(255,80,150,0.08)', dx:0.03, dy:-0.02},
+];
+
+// ---- Particle system ----
+let particles = [];
+function spawnBurst(x,y,color,count=18,speedMul=1,life=40){
+  for (let i=0;i<count;i++){
+    const ang = Math.random()*Math.PI*2;
+    const spd = (1+Math.random()*3)*speedMul;
+    particles.push({
+      x,y,
+      vx:Math.cos(ang)*spd,
+      vy:Math.sin(ang)*spd,
+      life:life+Math.random()*15,
+      maxLife:life+15,
+      r:2+Math.random()*3,
+      color
+    });
+  }
+}
+function spawnShipTrail(){
+  particles.push({
+    x: ship.x + (Math.random()-0.5)*10,
+    y: ship.y + 16,
+    vx:(Math.random()-0.5)*0.6,
+    vy: 1.5+Math.random()*1,
+    life: 18+Math.random()*10,
+    maxLife: 28,
+    r: 2+Math.random()*2,
+    color: Math.random()<0.5 ? '255,150,60' : '255,220,120'
+  });
+}
+function updateParticles(){
+  for (let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.vx *= 0.97; p.vy *= 0.97;
+    p.life--;
+    if (p.life<=0) particles.splice(i,1);
+  }
+}
+function drawParticles(){
+  particles.forEach(p=>{
+    const alpha = Math.max(0, p.life/p.maxLife);
+    ctx.fillStyle = `rgba(${p.color},${alpha})`;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r*alpha+0.5,0,Math.PI*2);
+    ctx.fill();
+  });
+}
+
+// ---- Score popups ----
+let popups = [];
+function spawnPopup(x,y,text,color){
+  popups.push({x,y,text,color,life:45,maxLife:45});
+}
+function updatePopups(){
+  for (let i=popups.length-1;i>=0;i--){
+    const p = popups[i];
+    p.y -= 0.8;
+    p.life--;
+    if (p.life<=0) popups.splice(i,1);
+  }
+}
+function drawPopups(){
+  popups.forEach(p=>{
+    const alpha = Math.max(0,p.life/p.maxLife);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = p.color;
+    ctx.font = 'bold 20px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 10;
+    ctx.fillText(p.text, p.x, p.y);
+    ctx.restore();
+  });
+}
+
+// ---- Feedback text flash ----
+function showFeedback(text, color){
+  feedbackEl.textContent = text;
+  feedbackEl.style.color = color;
+  feedbackEl.classList.remove('show');
+  void feedbackEl.offsetWidth; // restart animation
+  feedbackEl.classList.add('show');
+}
+
+// ---- Screen shake ----
+let shakeTimer = 0;
+function triggerShake(){
+  shakeTimer = 12;
+}
+
+// ---- Pause / Exit ----
+function pauseGame(){
+  if (!running || paused) return;
+  paused = true;
+  pauseOverlayEl.style.display = 'flex';
+  pauseBtnEl.textContent = '▶️';
+}
+function resumeGame(){
+  if (!running || !paused) return;
+  paused = false;
+  pauseOverlayEl.style.display = 'none';
+  pauseBtnEl.textContent = '⏸️';
+}
+pauseBtnEl.onclick = () => {
+  if (!running) return;
+  paused ? resumeGame() : pauseGame();
+};
+resumeBtn.onclick = () => resumeGame();
+menuExitBtn.onclick = () => location.reload();
+exitBtnEl.onclick = () => {
+  if (!running) return;
+  const wasPaused = paused;
+  if (!wasPaused) pauseGame();
+  const sure = confirm('Bạn có chắc muốn thoát về menu? Điểm số hiện tại sẽ mất.');
+  if (sure){
+    location.reload();
+  } else if (!wasPaused){
+    resumeGame();
+  }
+};
+document.addEventListener('keydown', e=>{
+  if (e.code==='Escape' && running){
+    paused ? resumeGame() : pauseGame();
+  }
+});
+
+// ---- Game state ----
+let ship, bullets, asteroids, keys, running, paused, lives, score, level, spawnTimer, fallSpeed, currentProblem, weakStats, combo, maxCombo;
+
+function initState(){
+  ship = { x: W/2, y: H-40, w:36, h:28, speed:6 };
+  bullets = [];
+  asteroids = [];
+  particles = [];
+  popups = [];
+  keys = {};
+  running = false;
+  paused = false;
+  lives = 3;
+  score = 0;
+  level = 1;
+  combo = 0;
+  maxCombo = 0;
+  spawnTimer = 0;
+  fallSpeed = 0.4;
+  weakStats = {};
+  livesEl.textContent = lives;
+  scoreEl.textContent = score;
+  levelEl.textContent = level;
+  comboEl.textContent = '';
+  pauseOverlayEl.style.display = 'none';
+  pauseBtnEl.textContent = '⏸️';
+  newProblem();
+}
+
+function weightedFact(){
+  const tables = selectedTables.size > 0 ? selectedTables : new Set([1,2,3,4,5,6,7,8,9,10]);
+  const facts = [];
+  for (const t of tables){
+    for (let b=1;b<=10;b++){
+      const key = t+'x'+b;
+      const weight = 1 + (weakStats[key] || 0)*2;
+      for (let i=0;i<weight;i++) facts.push([t,b]);
+    }
+  }
+  return facts[Math.floor(Math.random()*facts.length)];
+}
+
+function newProblem(){
+  const [a,b] = weightedFact();
+  currentProblem = { a, b, answer: a*b };
+  problemEl.textContent = `${a} × ${b} = ?`;
+  problemEl.classList.remove('pop');
+  void problemEl.offsetWidth;
+  problemEl.classList.add('pop');
+}
+
+function spawnWave(){
+  const correct = currentProblem.answer;
+  const decoys = new Set();
+  while (decoys.size < 2 + (level>3?1:0)) {
+    const off = (Math.floor(Math.random()*10)-5) || 3;
+    let d = correct + off*(Math.random()<0.5?1:2);
+    d = Math.max(1, Math.round(d));
+    if (d !== correct) decoys.add(d);
+  }
+  const values = [correct, ...decoys];
+  for (let i=values.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [values[i],values[j]]=[values[j],values[i]];
+  }
+  const lanes = values.length;
+  const gap = W/(lanes+1);
+  const palette = ['#8a6d4f','#5c6b8a','#7a5c8a','#6b8a5c','#8a5c6b'];
+  values.forEach((v,i)=>{
+    asteroids.push({
+      x: gap*(i+1),
+      y: -30 - Math.random()*40,
+      r: 22,
+      val: v,
+      correct: v === correct,
+      speed: fallSpeed + Math.random()*0.12,
+      rot: Math.random()*Math.PI*2,
+      rotSpeed: (Math.random()-0.5)*0.05,
+      color: palette[i % palette.length],
+      glowPhase: Math.random()*Math.PI*2
+    });
+  });
+}
+
+// ---- Input ----
+document.addEventListener('keydown', e=>{
+  keys[e.code]=true;
+  if (e.code==='Space' && running && !paused) { e.preventDefault(); shoot(); }
+});
+document.addEventListener('keyup', e=> keys[e.code]=false);
+
+canvas.addEventListener('touchstart', e=>{
+  e.preventDefault();
+  if (!running || paused) return;
+  ensureAudio();
+  const rect = canvas.getBoundingClientRect();
+  const tx = (e.touches[0].clientX - rect.left) * (W/rect.width);
+  ship.targetX = tx;
+  shoot();
+}, {passive:false});
+canvas.addEventListener('touchmove', e=>{
+  e.preventDefault();
+  if (!running || paused) return;
+  const rect = canvas.getBoundingClientRect();
+  ship.targetX = (e.touches[0].clientX - rect.left) * (W/rect.width);
+}, {passive:false});
+canvas.addEventListener('mousedown', e=>{
+  ensureAudio();
+  if(running && !paused) shoot();
+});
+
+function shoot(){
+  bullets.push({x: ship.x, y: ship.y-20, speed:10});
+  sfxShoot();
+}
+
+// ---- Update ----
+function update(){
+  if (keys['ArrowLeft']) ship.x -= ship.speed;
+  if (keys['ArrowRight']) ship.x += ship.speed;
+  if (ship.targetX !== undefined){
+    const dx = ship.targetX - ship.x;
+    ship.x += dx*0.25;
+  }
+  ship.x = Math.max(ship.w/2+4, Math.min(W-ship.w/2-4, ship.x));
+
+  if (Math.random()<0.6) spawnShipTrail();
+
+  bullets.forEach(b=> b.y -= b.speed);
+  bullets = bullets.filter(b=> b.y > -20);
+
+  asteroids.forEach(a=>{ a.y += a.speed; a.rot += a.rotSpeed; a.glowPhase += 0.08; });
+
+  outer:
+  for (let bi=bullets.length-1; bi>=0; bi--){
+    const b = bullets[bi];
+    for (let ai=asteroids.length-1; ai>=0; ai--){
+      const a = asteroids[ai];
+      const dx = b.x-a.x, dy=b.y-a.y;
+      if (Math.sqrt(dx*dx+dy*dy) < a.r+4){
+        bullets.splice(bi,1);
+        handleHit(a, ai);
+        continue outer;
+      }
+    }
+  }
+
+  for (let ai=asteroids.length-1; ai>=0; ai--){
+    const a = asteroids[ai];
+    if (a.y - a.r > H){
+      if (a.correct){
+        spawnBurst(a.x, H-20, '150,150,160', 10, 0.6, 25);
+        loseLife();
+        registerMiss();
+        combo = 0;
+        comboEl.textContent = '';
+      }
+      asteroids.splice(ai,1);
+    }
+  }
+
+  if (asteroids.length === 0){
+    spawnTimer++;
+    if (spawnTimer > 20){
+      spawnWave();
+      spawnTimer = 0;
+    }
+  }
+
+  updateParticles();
+  updatePopups();
+
+  if (shakeTimer>0){
+    shakeTimer--;
+    canvas.classList.add('shake');
+  } else {
+    canvas.classList.remove('shake');
+  }
+}
+
+function factKey(a,b){ return a+'x'+b; }
+
+function handleHit(a, idx){
+  const hitX = a.x, hitY = a.y;
+  asteroids.splice(idx,1);
+  if (a.correct){
+    combo++;
+    maxCombo = Math.max(maxCombo, combo);
+    const mult = 1 + Math.min(combo-1, 5)*0.2;
+    const gained = Math.round(10 * level * mult);
+    score += gained;
+    scoreEl.textContent = score;
+    spawnPopup(hitX, hitY, '+'+gained, '#ffe066');
+    spawnBurst(hitX, hitY, '255,224,102', 26, 1.3, 35);
+    spawnBurst(hitX, hitY, '120,220,255', 14, 0.8, 30);
+    if (combo>=2){
+      comboEl.textContent = `🔥 Combo x${combo}!`;
+    }
+    sfxCorrect(combo);
+    showFeedback(pickPraise(), '#7fffbf');
+    const key = factKey(currentProblem.a, currentProblem.b);
+    weakStats[key] = Math.max(0, (weakStats[key]||0) - 1);
+    asteroids = [];
+    bullets = [];
+    levelUpCheck();
+    newProblem();
+  } else {
+    registerMiss();
+    combo = 0;
+    comboEl.textContent = '';
+    spawnBurst(hitX, hitY, '255,80,80', 20, 1.1, 30);
+    spawnPopup(hitX, hitY, 'Sai!', '#ff6b6b');
+    sfxWrong();
+    showFeedback('SAI RỒI!', '#ff6b6b');
+    triggerShake();
+    loseLife();
+  }
+}
+
+function pickPraise(){
+  const arr = ['TUYỆT VỜI!','CHÍNH XÁC!','XUẤT SẮC!','QUÁ ĐỈNH!','NHANH THẬT!'];
+  return arr[Math.floor(Math.random()*arr.length)];
+}
+
+function registerMiss(){
+  const key = factKey(currentProblem.a, currentProblem.b);
+  weakStats[key] = (weakStats[key]||0) + 1;
+}
+
+function loseLife(){
+  lives--;
+  livesEl.textContent = lives;
+  livesEl.classList.remove('hit');
+  void livesEl.offsetWidth;
+  livesEl.classList.add('hit');
+  triggerShake();
+  sfxLifeLost();
+  if (lives <= 0){
+    gameOver();
+  }
+}
+
+function levelUpCheck(){
+  if (score >= level*100){
+    level++;
+    levelEl.textContent = level;
+    fallSpeed += 0.08;
+    sfxLevelUp();
+    showFeedback('⭐ LÊN CẤP ' + level + '! ⭐', '#7fd1ff');
+    spawnBurst(W/2, H/2, '127,209,255', 40, 1.6, 45);
+  }
+}
+
+function gameOver(){
+  running = false;
+  sfxGameOver();
+  overlay.style.display = 'flex';
+  overlay.innerHTML = `
+    <h1>💥 TRÁI ĐẤT GẶP NGUY!</h1>
+    <p>Bạn đạt được <b style="color:#ffe066">${score}</b> điểm ở Level ${level}.<br>Combo cao nhất: <b style="color:#ff9f4d">x${maxCombo}</b></p>
+    <button class="big" id="retryBtn">🔄 Chơi Lại</button>
+  `;
+  document.getElementById('retryBtn').onclick = () => location.reload();
+}
+
+// ---- Draw ----
+function drawStars(list, twinkle){
+  list.forEach(s=>{
+    s.y += s.s;
+    if (s.y>H) { s.y=0; s.x = Math.random()*W; }
+    const flicker = twinkle ? (0.5+Math.sin((s.x+s.y)*0.05 + performance.now()*0.002)*0.3) : 0.6;
+    ctx.globalAlpha = Math.max(0.15, flicker);
+    ctx.fillStyle = '#bfe0ff';
+    ctx.beginPath();
+    ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawNebulae(){
+  nebulae.forEach(n=>{
+    n.x += n.dx; n.y += n.dy;
+    if (n.x<-n.r) n.x = W+n.r;
+    if (n.x>W+n.r) n.x = -n.r;
+    if (n.y<-n.r) n.y = H+n.r;
+    if (n.y>H+n.r) n.y = -n.r;
+    const grd = ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r);
+    grd.addColorStop(0, n.color);
+    grd.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0,0,W,H);
+  });
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+
+  drawNebulae();
+  drawStars(starsFar, false);
+  drawStars(starsMid, true);
+  drawStars(starsNear, true);
+
+  const grd = ctx.createRadialGradient(W/2,H+40,10,W/2,H+40,180);
+  grd.addColorStop(0,'rgba(60,150,255,0.35)');
+  grd.addColorStop(1,'rgba(60,150,255,0)');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0,H-100,W,100);
+
+  drawParticles();
+
+  asteroids.forEach(a=>{
+    const glow = 8 + Math.sin(a.glowPhase)*4;
+    ctx.save();
+    ctx.translate(a.x,a.y);
+    ctx.rotate(a.rot);
+    ctx.shadowColor = a.correct ? 'rgba(255,224,102,0.5)' : 'rgba(255,255,255,0.15)';
+    ctx.shadowBlur = glow;
+    ctx.fillStyle = a.color;
+    ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const pts = 8;
+    for (let i=0;i<pts;i++){
+      const ang = (Math.PI*2/pts)*i;
+      const rad = a.r*(0.8+Math.sin(i*3+a.glowPhase*0.3)*0.15);
+      const px = Math.cos(ang)*rad, py = Math.sin(ang)*rad;
+      i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 19px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 3;
+    ctx.fillText(a.val, a.x, a.y);
+    ctx.shadowBlur = 0;
+  });
+
+  bullets.forEach(b=>{
+    ctx.save();
+    ctx.shadowColor = '#7fffbf';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#7fffbf';
+    ctx.fillRect(b.x-2, b.y-10, 4, 14);
+    ctx.restore();
+  });
+
+  ctx.save();
+  ctx.translate(ship.x, ship.y);
+  const engineFlicker = 22 + Math.random()*8;
+  ctx.fillStyle = 'rgba(255,150,60,0.85)';
+  ctx.beginPath();
+  ctx.moveTo(-7,17);
+  ctx.lineTo(0, engineFlicker);
+  ctx.lineTo(7,17);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.shadowColor = '#7fd1ff';
+  ctx.shadowBlur = 14;
+  ctx.fillStyle = '#7fd1ff';
+  ctx.beginPath();
+  ctx.moveTo(0,-20);
+  ctx.lineTo(16,18);
+  ctx.lineTo(0,10);
+  ctx.lineTo(-16,18);
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#ffe066';
+  ctx.beginPath();
+  ctx.arc(0,0,4,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  drawPopups();
+}
+
+// ---- Loop ----
+function loop(){
+  if (running && !paused){
+    update();
+    draw();
+  } else if (!running){
+    drawNebulae();
+    drawStars(starsFar, false);
+    drawStars(starsMid, true);
+  }
+  requestAnimationFrame(loop);
+}
+
+startBtn.onclick = () => {
+  if (selectedTables.size === 0){
+    hintEl.textContent = '⚠️ Hãy chọn ít nhất 1 bảng cửu chương trước khi bắt đầu!';
+    hintEl.style.color = '#ff6b6b';
+    return;
+  }
+  ensureAudio();
+  overlay.style.display = 'none';
+  initState();
+  running = true;
+  spawnWave();
+};
+
+initState();
+draw();
+loop();
+</script>
+</body>
+</html>
