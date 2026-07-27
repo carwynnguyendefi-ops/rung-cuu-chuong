@@ -16,10 +16,9 @@
 <!-- Tailwind (bản CDN, đủ dùng cho game này) -->
 <script src="https://cdn.tailwindcss.com"></script>
 
-<!-- React + Babel để chạy JSX thẳng trên trình duyệt, không cần build -->
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<!-- React (bản production, tải từ jsDelivr cho ổn định) -->
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
 
 <style>
   html, body { margin:0; padding:0; }
@@ -29,44 +28,159 @@
 <body>
 <div id="root"></div>
 
-<script type="text/babel" data-presets="react">
-const { useState, useRef } = React;
+<script>
+const {
+  useState,
+  useRef
+} = React;
 
 /* ---- Thay thế icon lucide-react bằng SVG đơn giản (không cần cài thêm gói) ---- */
-const Icon = ({ path, size = 20, color = "currentColor", children }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    {children}
-  </svg>
-);
-const Home = (p) => <Icon {...p}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></Icon>;
-const RotateCcw = (p) => <Icon {...p}><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></Icon>;
-const Volume2 = (p) => <Icon {...p}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></Icon>;
-const VolumeX = (p) => <Icon {...p}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></Icon>;
-const ChevronLeft = (p) => <Icon {...p}><polyline points="15 18 9 12 15 6"/></Icon>;
-const ChevronRight = (p) => <Icon {...p}><polyline points="9 18 15 12 9 6"/></Icon>;
-const BookOpen = (p) => <Icon {...p}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></Icon>;
-const PencilLine = (p) => <Icon {...p}><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></Icon>;
-const Trophy = (p) => <Icon {...p}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></Icon>;
-
+const Icon = ({
+  path,
+  size = 20,
+  color = "currentColor",
+  children
+}) => /*#__PURE__*/React.createElement("svg", {
+  width: size,
+  height: size,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: color,
+  strokeWidth: "2",
+  strokeLinecap: "round",
+  strokeLinejoin: "round"
+}, children);
+const Home = p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+  d: "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+}), /*#__PURE__*/React.createElement("polyline", {
+  points: "9 22 9 12 15 12 15 22"
+}));
+const RotateCcw = p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("polyline", {
+  points: "1 4 1 10 7 10"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M3.51 15a9 9 0 1 0 2.13-9.36L1 10"
+}));
+const Volume2 = p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("polygon", {
+  points: "11 5 6 9 2 9 2 15 6 15 11 19 11 5"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"
+}));
+const VolumeX = p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("polygon", {
+  points: "11 5 6 9 2 9 2 15 6 15 11 19 11 5"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "23",
+  y1: "9",
+  x2: "17",
+  y2: "15"
+}), /*#__PURE__*/React.createElement("line", {
+  x1: "17",
+  y1: "9",
+  x2: "23",
+  y2: "15"
+}));
+const ChevronLeft = p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("polyline", {
+  points: "15 18 9 12 15 6"
+}));
+const ChevronRight = p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("polyline", {
+  points: "9 18 15 12 9 6"
+}));
+const BookOpen = p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+  d: "M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"
+}));
+const PencilLine = p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+  d: "M12 20h9"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"
+}));
+const Trophy = p => /*#__PURE__*/React.createElement(Icon, p, /*#__PURE__*/React.createElement("path", {
+  d: "M6 9H4.5a2.5 2.5 0 0 1 0-5H6"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M18 9h1.5a2.5 2.5 0 0 0 0-5H18"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M4 22h16"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"
+}), /*#__PURE__*/React.createElement("path", {
+  d: "M18 2H6v7a6 6 0 0 0 12 0V2Z"
+}));
 const THEME = {
-  1: { emoji: "🐘", name: "Voi Con", color: "#FFC93C", soft: "#FFF6DC" },
-  2: { emoji: "🐵", name: "Khỉ Con", color: "#58C97C", soft: "#E9F8D9" },
-  3: { emoji: "🐼", name: "Gấu Trúc", color: "#8B6FD9", soft: "#EFE8FB" },
-  4: { emoji: "🦒", name: "Hươu Cao Cổ", color: "#FF9F45", soft: "#FFEEDD" },
-  5: { emoji: "🦊", name: "Cáo Nhỏ", color: "#E8574C", soft: "#FDE7E4" },
-  6: { emoji: "🐰", name: "Thỏ Hồng", color: "#F76E9C", soft: "#FDEAF0" },
-  7: { emoji: "🐢", name: "Rùa Biển", color: "#3AAFA9", soft: "#E2F5F3" },
-  8: { emoji: "🐬", name: "Cá Heo", color: "#4E9BE0", soft: "#E5F1FC" },
-  9: { emoji: "🦉", name: "Cú Mèo", color: "#7C83FD", soft: "#ECEDFE" },
-  10: { emoji: "🐉", name: "Rồng Vàng", color: "#F2B705", soft: "#FFF2C4" },
-  mix: { emoji: "🦁", name: "Sư Tử Nhỏ", color: "#FF7A6B", soft: "#FFE3DE" },
+  1: {
+    emoji: "🐘",
+    name: "Voi Con",
+    color: "#FFC93C",
+    soft: "#FFF6DC"
+  },
+  2: {
+    emoji: "🐵",
+    name: "Khỉ Con",
+    color: "#58C97C",
+    soft: "#E9F8D9"
+  },
+  3: {
+    emoji: "🐼",
+    name: "Gấu Trúc",
+    color: "#8B6FD9",
+    soft: "#EFE8FB"
+  },
+  4: {
+    emoji: "🦒",
+    name: "Hươu Cao Cổ",
+    color: "#FF9F45",
+    soft: "#FFEEDD"
+  },
+  5: {
+    emoji: "🦊",
+    name: "Cáo Nhỏ",
+    color: "#E8574C",
+    soft: "#FDE7E4"
+  },
+  6: {
+    emoji: "🐰",
+    name: "Thỏ Hồng",
+    color: "#F76E9C",
+    soft: "#FDEAF0"
+  },
+  7: {
+    emoji: "🐢",
+    name: "Rùa Biển",
+    color: "#3AAFA9",
+    soft: "#E2F5F3"
+  },
+  8: {
+    emoji: "🐬",
+    name: "Cá Heo",
+    color: "#4E9BE0",
+    soft: "#E5F1FC"
+  },
+  9: {
+    emoji: "🦉",
+    name: "Cú Mèo",
+    color: "#7C83FD",
+    soft: "#ECEDFE"
+  },
+  10: {
+    emoji: "🐉",
+    name: "Rồng Vàng",
+    color: "#F2B705",
+    soft: "#FFF2C4"
+  },
+  mix: {
+    emoji: "🦁",
+    name: "Sư Tử Nhỏ",
+    color: "#FF7A6B",
+    soft: "#FFE3DE"
+  }
 };
 const INK = "#2E4B3F";
-const TABLE_KEYS = Array.from({ length: 10 }, (_, i) => i + 1);
-
+const TABLE_KEYS = Array.from({
+  length: 10
+}, (_, i) => i + 1);
 const CORRECT_MSGS = ["Chính xác! 🎉", "Giỏi quá! ⭐", "Tuyệt vời! 👏", "Đúng rồi đó! 🥳", "Xuất sắc! 🌟"];
 const WRONG_MSGS = ["Chưa đúng rồi, thử lại nhé! 💪", "Gần đúng rồi, cố lên! 🌈", "Không sao, học thêm chút nữa nhé! 😊"];
-
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -75,40 +189,41 @@ function shuffle(arr) {
   }
   return a;
 }
-
 function makeQuestion(table, multiplier) {
   const correct = table * multiplier;
   const pool = new Set();
-  [multiplier - 2, multiplier - 1, multiplier + 1, multiplier + 2].forEach((m) => {
+  [multiplier - 2, multiplier - 1, multiplier + 1, multiplier + 2].forEach(m => {
     if (m >= 1 && m <= 12 && m !== multiplier) pool.add(table * m);
   });
-  [1, -1, 2, -2, 3, -3, 4, -4].forEach((d) => {
+  [1, -1, 2, -2, 3, -3, 4, -4].forEach(d => {
     const v = correct + d;
     if (v > 0 && v !== correct) pool.add(v);
   });
   pool.delete(correct);
   const distractors = shuffle([...pool]).slice(0, 3);
   const options = shuffle([correct, ...distractors]);
-  return { table, multiplier, correct, options };
+  return {
+    table,
+    multiplier,
+    correct,
+    options
+  };
 }
-
 function generateQuestions(tableKey) {
   if (tableKey === "mix") {
     let qs = [];
-    TABLE_KEYS.forEach((t) => {
+    TABLE_KEYS.forEach(t => {
       const mult = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).slice(0, 2);
-      mult.forEach((m) => qs.push(makeQuestion(t, m)));
+      mult.forEach(m => qs.push(makeQuestion(t, m)));
     });
     return shuffle(qs);
   }
   const mult = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-  return mult.map((m) => makeQuestion(tableKey, m));
+  return mult.map(m => makeQuestion(tableKey, m));
 }
-
 function buildHint(table, multiplier, correct) {
   return `${table} × ${multiplier} nghĩa là có ${table} nhóm, mỗi nhóm ${multiplier} ô. Gộp lại được tất cả ${correct} ô vuông!`;
 }
-
 function MultiplicationForest() {
   const [screen, setScreen] = useState("menu");
   const [tableKey, setTableKey] = useState(1);
@@ -124,11 +239,9 @@ function MultiplicationForest() {
   const [learnIndex, setLearnIndex] = useState(0);
   const [visited, setVisited] = useState(Array(10).fill(false));
   const idRef = useRef(0);
-
   const theme = THEME[tableKey];
   const q = questions[index];
-
-  const playSound = (type) => {
+  const playSound = type => {
     if (muted) return;
     try {
       const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -161,8 +274,7 @@ function MultiplicationForest() {
       }
     } catch (e) {}
   };
-
-  const speak = (text) => {
+  const speak = text => {
     try {
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
@@ -171,20 +283,20 @@ function MultiplicationForest() {
       window.speechSynthesis.speak(u);
     } catch (e) {}
   };
-
   const spawnConfetti = () => {
     const emojis = ["🌟", "✨", "🍃", "🎉", "🌸"];
-    const pieces = Array.from({ length: 10 }).map(() => ({
+    const pieces = Array.from({
+      length: 10
+    }).map(() => ({
       id: idRef.current++,
       left: Math.random() * 90 + 5,
       delay: Math.random() * 0.3,
-      emoji: emojis[Math.floor(Math.random() * emojis.length)],
+      emoji: emojis[Math.floor(Math.random() * emojis.length)]
     }));
     setConfetti(pieces);
     setTimeout(() => setConfetti([]), 1400);
   };
-
-  const handleSelectTable = (key) => {
+  const handleSelectTable = key => {
     if (key === "mix") {
       startGame(key);
     } else {
@@ -192,25 +304,22 @@ function MultiplicationForest() {
       setScreen("mode");
     }
   };
-
-  const startLearn = (key) => {
+  const startLearn = key => {
     setTableKey(key);
     setLearnIndex(0);
     setVisited(Array(10).fill(false).map((_, i) => i === 0));
     setScreen("learn");
   };
-
-  const gotoLearn = (i) => {
+  const gotoLearn = i => {
     const clamped = Math.max(0, Math.min(9, i));
     setLearnIndex(clamped);
-    setVisited((v) => {
+    setVisited(v => {
       const nv = [...v];
       nv[clamped] = true;
       return nv;
     });
   };
-
-  const startGame = (key) => {
+  const startGame = key => {
     setTableKey(key);
     const qs = generateQuestions(key);
     setQuestions(qs);
@@ -221,8 +330,7 @@ function MultiplicationForest() {
     setScore(0);
     setScreen("game");
   };
-
-  const handleAnswer = (opt) => {
+  const handleAnswer = opt => {
     if (answered) return;
     const isCorrect = opt === q.correct;
     setSelected(opt);
@@ -231,7 +339,7 @@ function MultiplicationForest() {
     next[index] = isCorrect ? "correct" : "wrong";
     setAnswers(next);
     if (isCorrect) {
-      setScore((s) => s + 1);
+      setScore(s => s + 1);
       spawnConfetti();
       playSound("correct");
       setMascotAnim("mascot-happy");
@@ -240,46 +348,32 @@ function MultiplicationForest() {
       setMascotAnim("mascot-sad");
     }
   };
-
   const nextQuestion = () => {
     setMascotAnim("");
     if (index + 1 < questions.length) {
-      setIndex((i) => i + 1);
+      setIndex(i => i + 1);
       setSelected(null);
       setAnswered(false);
     } else {
       setScreen("result");
     }
   };
-
-  const msg = answered ? (selected === q?.correct ? CORRECT_MSGS[index % CORRECT_MSGS.length] : WRONG_MSGS[index % WRONG_MSGS.length]) : "";
-
+  const msg = answered ? selected === q?.correct ? CORRECT_MSGS[index % CORRECT_MSGS.length] : WRONG_MSGS[index % WRONG_MSGS.length] : "";
   const pct = questions.length ? score / questions.length : 0;
   const stars = pct === 1 ? 3 : pct >= 0.7 ? 2 : pct >= 0.4 ? 1 : 0;
-  const resultMsg =
-    stars === 3
-      ? "Xuất sắc! Bạn đã thuộc làu bảng cửu chương rồi! 🏆"
-      : stars === 2
-      ? "Rất giỏi! Chỉ cần luyện thêm chút nữa thôi! 🌈"
-      : stars === 1
-      ? "Bạn làm tốt lắm! Cùng cố gắng thêm nhé! 💪"
-      : "Không sao cả, mỗi lần chơi là một lần giỏi hơn! 🌱";
-
+  const resultMsg = stars === 3 ? "Xuất sắc! Bạn đã thuộc làu bảng cửu chương rồi! 🏆" : stars === 2 ? "Rất giỏi! Chỉ cần luyện thêm chút nữa thôi! 🌈" : stars === 1 ? "Bạn làm tốt lắm! Cùng cố gắng thêm nhé! 💪" : "Không sao cả, mỗi lần chơi là một lần giỏi hơn! 🌱";
   const lm = learnIndex + 1;
   const lCorrect = typeof tableKey === "number" ? tableKey * lm : 0;
   const total = typeof tableKey === "number" ? tableKey * lm : 0;
   const cellSize = total <= 20 ? 22 : total <= 50 ? 14 : 9;
-
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "linear-gradient(180deg, #CDF1F6 0%, #EAF8D7 100%)",
-        fontFamily: "'Nunito', sans-serif",
-        color: INK,
-      }}
-    >
-      <style>{`
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      minHeight: "100vh",
+      background: "linear-gradient(180deg, #CDF1F6 0%, #EAF8D7 100%)",
+      fontFamily: "'Nunito', sans-serif",
+      color: INK
+    }
+  }, /*#__PURE__*/React.createElement("style", null, `
         @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@600;700;800&display=swap');
         .font-display { font-family: 'Baloo 2', sans-serif; }
         @keyframes bounce-happy { 0%,100%{transform:translateY(0) scale(1);} 50%{transform:translateY(-14px) scale(1.1);} }
@@ -296,354 +390,353 @@ function MultiplicationForest() {
         .card-btn:hover { transform: translateY(-4px); }
         .chip { transition: transform 0.15s ease; }
         .chip:hover { transform: translateY(-2px) scale(1.05); }
-      `}</style>
-
-      <div className="max-w-lg mx-auto px-4 py-6">
-        {screen === "menu" && (
-          <div className="pop-in">
-            <div className="text-center mb-6">
-              <h1 className="font-display text-4xl font-extrabold" style={{ color: INK }}>
-                🌿 Rừng Cửu Chương 🌿
-              </h1>
-              <p className="mt-2 text-base font-bold opacity-80">
-                Cùng bạn thú nhỏ chinh phục bảng nhân từ 1 đến 10 nhé!
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {TABLE_KEYS.map((k) => (
-                <button
-                  key={k}
-                  onClick={() => handleSelectTable(k)}
-                  className="card-btn rounded-2xl p-3 shadow-md flex flex-col items-center text-center"
-                  style={{ backgroundColor: THEME[k].soft, border: `3px solid ${THEME[k].color}` }}
-                >
-                  <span className="text-4xl mb-1">{THEME[k].emoji}</span>
-                  <span className="font-display font-extrabold text-base">Bảng {k}</span>
-                  <span className="text-xs font-bold opacity-70">{THEME[k].name}</span>
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => handleSelectTable("mix")}
-              className="card-btn w-full mt-4 rounded-3xl p-5 shadow-lg flex items-center gap-4 text-left"
-              style={{ backgroundColor: THEME.mix.soft, border: `3px solid ${THEME.mix.color}` }}
-            >
-              <span className="text-5xl">{THEME.mix.emoji}</span>
-              <div className="flex-1">
-                <div className="font-display font-extrabold text-lg flex items-center gap-1">
-                  <Trophy size={18} color={THEME.mix.color} /> Thử thách tổng hợp
-                </div>
-                <div className="text-xs font-bold opacity-70">Trộn cả 10 bảng nhân · {THEME.mix.name}</div>
-              </div>
-              <span className="font-display font-extrabold text-sm" style={{ color: THEME.mix.color }}>
-                Bắt đầu ▶
-              </span>
-            </button>
-
-            <p className="text-center text-sm font-bold opacity-60 mt-6">
-              Chọn một bảng để học hoặc kiểm tra 🎮
-            </p>
-          </div>
-        )}
-
-        {screen === "mode" && (
-          <div className="pop-in text-center">
-            <div className="flex justify-start mb-4">
-              <button onClick={() => setScreen("menu")} className="p-2 rounded-full shadow bg-white/80" aria-label="Về trang chủ">
-                <Home size={20} color={INK} />
-              </button>
-            </div>
-            <div className="text-7xl mb-2">{theme.emoji}</div>
-            <h2 className="font-display font-extrabold text-3xl mb-1">Bảng nhân {tableKey}</h2>
-            <p className="text-base font-bold opacity-70 mb-6">Bạn muốn học hay kiểm tra nào?</p>
-
-            <div className="flex flex-col gap-4 max-w-xs mx-auto">
-              <button
-                onClick={() => startLearn(tableKey)}
-                className="card-btn rounded-2xl py-5 font-display font-extrabold text-xl shadow-lg text-white flex items-center justify-center gap-2"
-                style={{ backgroundColor: theme.color }}
-              >
-                <BookOpen size={22} /> Học bảng nhân
-              </button>
-              <button
-                onClick={() => startGame(tableKey)}
-                className="card-btn rounded-2xl py-5 font-display font-extrabold text-xl shadow-lg bg-white flex items-center justify-center gap-2"
-                style={{ border: `3px solid ${theme.color}`, color: INK }}
-              >
-                <PencilLine size={22} /> Kiểm tra
-              </button>
-            </div>
-          </div>
-        )}
-
-        {screen === "learn" && typeof tableKey === "number" && (
-          <div className="pop-in">
-            <div className="flex items-center justify-between mb-4">
-              <button onClick={() => setScreen("mode")} className="p-2 rounded-full shadow bg-white/80" aria-label="Quay lại">
-                <Home size={20} color={INK} />
-              </button>
-              <div className="flex items-center gap-2 font-display font-extrabold text-lg">
-                <BookOpen size={20} /> Học bảng nhân {tableKey}
-              </div>
-              <span className="text-2xl">{theme.emoji}</span>
-            </div>
-
-            <div
-              className="rounded-3xl shadow-xl p-6 text-center"
-              style={{ backgroundColor: "#FFFDF6", border: `3px solid ${theme.color}` }}
-            >
-              <div className="flex flex-col items-center gap-1 mb-4">
-                {Array.from({ length: tableKey }).map((_, r) => (
-                  <div key={r} className="flex gap-1 flex-wrap justify-center">
-                    {Array.from({ length: lm }).map((_, c) => (
-                      <span
-                        key={c}
-                        style={{
-                          width: cellSize,
-                          height: cellSize,
-                          backgroundColor: theme.color,
-                          borderRadius: cellSize > 14 ? 6 : 3,
-                          display: "inline-block",
-                        }}
-                      />
-                    ))}
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex items-center justify-center gap-3">
-                <div className="font-display font-extrabold text-5xl" style={{ color: INK }}>
-                  {tableKey} × {lm} = {lCorrect}
-                </div>
-                <button
-                  onClick={() => speak(`${tableKey} nhân ${lm} bằng ${lCorrect}`)}
-                  className="p-3 rounded-full shadow-md"
-                  style={{ backgroundColor: theme.soft }}
-                  aria-label="Nghe đọc"
-                >
-                  <Volume2 size={22} color={theme.color} />
-                </button>
-              </div>
-
-              <p className="text-base font-bold opacity-80 mt-4 leading-relaxed">
-                {buildHint(tableKey, lm, lCorrect)}
-              </p>
-            </div>
-
-            <div className="mt-5">
-              <p className="text-sm font-bold opacity-60 text-center mb-2">
-                Đếm thêm {tableKey} mỗi lần:
-              </p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {Array.from({ length: 10 }).map((_, i) => {
-                  const val = tableKey * (i + 1);
-                  const isCurrent = i === learnIndex;
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => gotoLearn(i)}
-                      className="chip rounded-full px-3 py-1.5 font-display font-extrabold text-sm shadow"
-                      style={{
-                        backgroundColor: isCurrent ? theme.color : visited[i] ? theme.soft : "#FFFFFF",
-                        color: isCurrent ? "#FFFFFF" : INK,
-                        border: `2px solid ${isCurrent ? theme.color : "#E5E5DE"}`,
-                      }}
-                    >
-                      {val}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-3 mt-6">
-              <button
-                onClick={() => gotoLearn(learnIndex - 1)}
-                disabled={learnIndex === 0}
-                className="rounded-2xl px-4 py-3 font-display font-extrabold shadow flex items-center gap-1 disabled:opacity-40 bg-white"
-                style={{ border: `2px solid ${theme.color}` }}
-              >
-                <ChevronLeft size={20} /> Trước
-              </button>
-              <span className="font-display font-extrabold opacity-70">{lm} / 10</span>
-              <button
-                onClick={() => gotoLearn(learnIndex + 1)}
-                disabled={learnIndex === 9}
-                className="rounded-2xl px-4 py-3 font-display font-extrabold shadow flex items-center gap-1 disabled:opacity-40 text-white"
-                style={{ backgroundColor: theme.color }}
-              >
-                Sau <ChevronRight size={20} />
-              </button>
-            </div>
-
-            <button
-              onClick={() => startGame(tableKey)}
-              className="w-full mt-5 rounded-2xl py-4 font-display font-extrabold text-lg shadow-lg flex items-center justify-center gap-2 bg-white"
-              style={{ border: `3px solid ${INK}` }}
-            >
-              <PencilLine size={20} /> Học xong rồi, đi kiểm tra!
-            </button>
-          </div>
-        )}
-
-        {screen === "game" && q && (
-          <div className="pop-in">
-            <div className="flex items-center justify-between mb-4">
-              <button onClick={() => setScreen("menu")} className="p-2 rounded-full shadow bg-white/80" aria-label="Về trang chủ">
-                <Home size={20} color={INK} />
-              </button>
-              <div className="flex items-center gap-2 font-display font-extrabold text-lg">
-                <span className="text-2xl">{theme.emoji}</span> Kiểm tra: {tableKey === "mix" ? "Tổng hợp" : `Bảng ${tableKey}`}
-              </div>
-              <button onClick={() => setMuted((m) => !m)} className="p-2 rounded-full shadow bg-white/80" aria-label="Bật/tắt âm thanh">
-                {muted ? <VolumeX size={20} color={INK} /> : <Volume2 size={20} color={INK} />}
-              </button>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-1.5 mb-5">
-              {answers.map((a, i) => (
-                <span
-                  key={i}
-                  className="rounded-full"
-                  style={{
-                    width: 12,
-                    height: 12,
-                    backgroundColor: a === "correct" ? "#58C93C" : a === "wrong" ? "#FF7A6B" : "#FFFFFF",
-                    border: i === index ? `2px solid ${theme.color}` : "2px solid #D9EFE0",
-                  }}
-                />
-              ))}
-            </div>
-
-            <div
-              className="rounded-3xl shadow-xl p-6 text-center relative overflow-hidden"
-              style={{ backgroundColor: "#FFFDF6", border: `3px solid ${theme.color}` }}
-            >
-              {confetti.map((c) => (
-                <span key={c.id} className="confetti-piece" style={{ left: `${c.left}%`, animationDelay: `${c.delay}s` }}>
-                  {c.emoji}
-                </span>
-              ))}
-
-              <div className={`text-6xl mb-2 ${mascotAnim}`}>{theme.emoji}</div>
-
-              <div className="font-display font-extrabold text-5xl my-4" style={{ color: INK }}>
-                {q.table} × {q.multiplier} = ?
-              </div>
-
-              {answered && (
-                <div
-                  className="font-display font-bold text-lg mb-2 pop-in"
-                  style={{ color: selected === q.correct ? "#3E9C58" : "#E85A4A" }}
-                >
-                  {msg}
-                  {selected !== q.correct && (
-                    <div className="text-sm font-bold opacity-80 mt-1">
-                      Đáp án đúng là {q.table} × {q.multiplier} = {q.correct}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mt-5">
-              {q.options.map((opt) => {
-                let bg = "#FFFFFF";
-                let border = "#D9EFE0";
-                let textColor = INK;
-                if (answered) {
-                  if (opt === q.correct) {
-                    bg = "#DFF6E4";
-                    border = "#58C97C";
-                  } else if (opt === selected) {
-                    bg = "#FFE3DF";
-                    border = "#FF7A6B";
-                  } else {
-                    bg = "#F5F5F0";
-                    border = "#E5E5DE";
-                    textColor = "#A9A9A0";
-                  }
-                }
-                return (
-                  <button
-                    key={opt}
-                    disabled={answered}
-                    onClick={() => handleAnswer(opt)}
-                    className="opt-btn rounded-2xl py-6 font-display font-extrabold text-3xl shadow-md"
-                    style={{ backgroundColor: bg, border: `3px solid ${border}`, color: textColor }}
-                  >
-                    {opt}
-                  </button>
-                );
-              })}
-            </div>
-
-            {answered && (
-              <button
-                onClick={nextQuestion}
-                className="w-full mt-5 rounded-2xl py-4 font-display font-extrabold text-xl shadow-lg text-white"
-                style={{ backgroundColor: theme.color }}
-              >
-                {index + 1 < questions.length ? "Câu tiếp theo →" : "Xem kết quả 🎉"}
-              </button>
-            )}
-
-            <p className="text-center text-sm font-bold opacity-60 mt-4">
-              Câu {index + 1} / {questions.length} · ⭐ {score}
-            </p>
-          </div>
-        )}
-
-        {screen === "result" && (
-          <div className="pop-in text-center">
-            <div className="text-7xl mb-3">{theme.emoji}</div>
-            <h2 className="font-display font-extrabold text-3xl mb-2">{resultMsg}</h2>
-            <div className="text-4xl mb-4">
-              {"⭐".repeat(stars)}
-              {"☆".repeat(3 - stars)}
-            </div>
-            <div
-              className="inline-block rounded-2xl px-6 py-3 font-display font-extrabold text-2xl shadow-md mb-6"
-              style={{ backgroundColor: theme.soft, border: `3px solid ${theme.color}` }}
-            >
-              Đúng {score} / {questions.length} câu
-            </div>
-            <div className="flex flex-col gap-3 max-w-xs mx-auto">
-              {typeof tableKey === "number" && (
-                <button
-                  onClick={() => startLearn(tableKey)}
-                  className="rounded-2xl py-4 font-display font-extrabold text-lg shadow-lg bg-white flex items-center justify-center gap-2"
-                  style={{ border: `3px solid ${theme.color}`, color: INK }}
-                >
-                  <BookOpen size={20} /> Học lại
-                </button>
-              )}
-              <button
-                onClick={() => startGame(tableKey)}
-                className="rounded-2xl py-4 font-display font-extrabold text-lg shadow-lg text-white flex items-center justify-center gap-2"
-                style={{ backgroundColor: theme.color }}
-              >
-                <RotateCcw size={20} /> Chơi lại
-              </button>
-              <button
-                onClick={() => setScreen("menu")}
-                className="rounded-2xl py-4 font-display font-extrabold text-lg shadow-lg flex items-center justify-center gap-2 bg-white"
-                style={{ border: `3px solid ${INK}` }}
-              >
-                <Home size={20} /> Chọn bảng khác
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+      `), /*#__PURE__*/React.createElement("div", {
+    className: "max-w-lg mx-auto px-4 py-6"
+  }, screen === "menu" && /*#__PURE__*/React.createElement("div", {
+    className: "pop-in"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-center mb-6"
+  }, /*#__PURE__*/React.createElement("h1", {
+    className: "font-display text-4xl font-extrabold",
+    style: {
+      color: INK
+    }
+  }, "🌿 Rừng Cửu Chương 🌿"), /*#__PURE__*/React.createElement("p", {
+    className: "mt-2 text-base font-bold opacity-80"
+  }, "Cùng bạn thú nhỏ chinh phục bảng nhân từ 1 đến 10 nhé!")), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 sm:grid-cols-3 gap-3"
+  }, TABLE_KEYS.map(k => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    onClick: () => handleSelectTable(k),
+    className: "card-btn rounded-2xl p-3 shadow-md flex flex-col items-center text-center",
+    style: {
+      backgroundColor: THEME[k].soft,
+      border: `3px solid ${THEME[k].color}`
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-4xl mb-1"
+  }, THEME[k].emoji), /*#__PURE__*/React.createElement("span", {
+    className: "font-display font-extrabold text-base"
+  }, "Bảng ", k), /*#__PURE__*/React.createElement("span", {
+    className: "text-xs font-bold opacity-70"
+  }, THEME[k].name)))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => handleSelectTable("mix"),
+    className: "card-btn w-full mt-4 rounded-3xl p-5 shadow-lg flex items-center gap-4 text-left",
+    style: {
+      backgroundColor: THEME.mix.soft,
+      border: `3px solid ${THEME.mix.color}`
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-5xl"
+  }, THEME.mix.emoji), /*#__PURE__*/React.createElement("div", {
+    className: "flex-1"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "font-display font-extrabold text-lg flex items-center gap-1"
+  }, /*#__PURE__*/React.createElement(Trophy, {
+    size: 18,
+    color: THEME.mix.color
+  }), " Thử thách tổng hợp"), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs font-bold opacity-70"
+  }, "Trộn cả 10 bảng nhân · ", THEME.mix.name)), /*#__PURE__*/React.createElement("span", {
+    className: "font-display font-extrabold text-sm",
+    style: {
+      color: THEME.mix.color
+    }
+  }, "Bắt đầu ▶")), /*#__PURE__*/React.createElement("p", {
+    className: "text-center text-sm font-bold opacity-60 mt-6"
+  }, "Chọn một bảng để học hoặc kiểm tra 🎮")), screen === "mode" && /*#__PURE__*/React.createElement("div", {
+    className: "pop-in text-center"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-start mb-4"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setScreen("menu"),
+    className: "p-2 rounded-full shadow bg-white/80",
+    "aria-label": "Về trang chủ"
+  }, /*#__PURE__*/React.createElement(Home, {
+    size: 20,
+    color: INK
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "text-7xl mb-2"
+  }, theme.emoji), /*#__PURE__*/React.createElement("h2", {
+    className: "font-display font-extrabold text-3xl mb-1"
+  }, "Bảng nhân ", tableKey), /*#__PURE__*/React.createElement("p", {
+    className: "text-base font-bold opacity-70 mb-6"
+  }, "Bạn muốn học hay kiểm tra nào?"), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-4 max-w-xs mx-auto"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => startLearn(tableKey),
+    className: "card-btn rounded-2xl py-5 font-display font-extrabold text-xl shadow-lg text-white flex items-center justify-center gap-2",
+    style: {
+      backgroundColor: theme.color
+    }
+  }, /*#__PURE__*/React.createElement(BookOpen, {
+    size: 22
+  }), " Học bảng nhân"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => startGame(tableKey),
+    className: "card-btn rounded-2xl py-5 font-display font-extrabold text-xl shadow-lg bg-white flex items-center justify-center gap-2",
+    style: {
+      border: `3px solid ${theme.color}`,
+      color: INK
+    }
+  }, /*#__PURE__*/React.createElement(PencilLine, {
+    size: 22
+  }), " Kiểm tra"))), screen === "learn" && typeof tableKey === "number" && /*#__PURE__*/React.createElement("div", {
+    className: "pop-in"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mb-4"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setScreen("mode"),
+    className: "p-2 rounded-full shadow bg-white/80",
+    "aria-label": "Quay lại"
+  }, /*#__PURE__*/React.createElement(Home, {
+    size: 20,
+    color: INK
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 font-display font-extrabold text-lg"
+  }, /*#__PURE__*/React.createElement(BookOpen, {
+    size: 20
+  }), " Học bảng nhân ", tableKey), /*#__PURE__*/React.createElement("span", {
+    className: "text-2xl"
+  }, theme.emoji)), /*#__PURE__*/React.createElement("div", {
+    className: "rounded-3xl shadow-xl p-6 text-center",
+    style: {
+      backgroundColor: "#FFFDF6",
+      border: `3px solid ${theme.color}`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col items-center gap-1 mb-4"
+  }, Array.from({
+    length: tableKey
+  }).map((_, r) => /*#__PURE__*/React.createElement("div", {
+    key: r,
+    className: "flex gap-1 flex-wrap justify-center"
+  }, Array.from({
+    length: lm
+  }).map((_, c) => /*#__PURE__*/React.createElement("span", {
+    key: c,
+    style: {
+      width: cellSize,
+      height: cellSize,
+      backgroundColor: theme.color,
+      borderRadius: cellSize > 14 ? 6 : 3,
+      display: "inline-block"
+    }
+  }))))), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-center gap-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "font-display font-extrabold text-5xl",
+    style: {
+      color: INK
+    }
+  }, tableKey, " × ", lm, " = ", lCorrect), /*#__PURE__*/React.createElement("button", {
+    onClick: () => speak(`${tableKey} nhân ${lm} bằng ${lCorrect}`),
+    className: "p-3 rounded-full shadow-md",
+    style: {
+      backgroundColor: theme.soft
+    },
+    "aria-label": "Nghe đọc"
+  }, /*#__PURE__*/React.createElement(Volume2, {
+    size: 22,
+    color: theme.color
+  }))), /*#__PURE__*/React.createElement("p", {
+    className: "text-base font-bold opacity-80 mt-4 leading-relaxed"
+  }, buildHint(tableKey, lm, lCorrect))), /*#__PURE__*/React.createElement("div", {
+    className: "mt-5"
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "text-sm font-bold opacity-60 text-center mb-2"
+  }, "Đếm thêm ", tableKey, " mỗi lần:"), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-wrap justify-center gap-2"
+  }, Array.from({
+    length: 10
+  }).map((_, i) => {
+    const val = tableKey * (i + 1);
+    const isCurrent = i === learnIndex;
+    return /*#__PURE__*/React.createElement("button", {
+      key: i,
+      onClick: () => gotoLearn(i),
+      className: "chip rounded-full px-3 py-1.5 font-display font-extrabold text-sm shadow",
+      style: {
+        backgroundColor: isCurrent ? theme.color : visited[i] ? theme.soft : "#FFFFFF",
+        color: isCurrent ? "#FFFFFF" : INK,
+        border: `2px solid ${isCurrent ? theme.color : "#E5E5DE"}`
+      }
+    }, val);
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between gap-3 mt-6"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => gotoLearn(learnIndex - 1),
+    disabled: learnIndex === 0,
+    className: "rounded-2xl px-4 py-3 font-display font-extrabold shadow flex items-center gap-1 disabled:opacity-40 bg-white",
+    style: {
+      border: `2px solid ${theme.color}`
+    }
+  }, /*#__PURE__*/React.createElement(ChevronLeft, {
+    size: 20
+  }), " Trước"), /*#__PURE__*/React.createElement("span", {
+    className: "font-display font-extrabold opacity-70"
+  }, lm, " / 10"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => gotoLearn(learnIndex + 1),
+    disabled: learnIndex === 9,
+    className: "rounded-2xl px-4 py-3 font-display font-extrabold shadow flex items-center gap-1 disabled:opacity-40 text-white",
+    style: {
+      backgroundColor: theme.color
+    }
+  }, "Sau ", /*#__PURE__*/React.createElement(ChevronRight, {
+    size: 20
+  }))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => startGame(tableKey),
+    className: "w-full mt-5 rounded-2xl py-4 font-display font-extrabold text-lg shadow-lg flex items-center justify-center gap-2 bg-white",
+    style: {
+      border: `3px solid ${INK}`
+    }
+  }, /*#__PURE__*/React.createElement(PencilLine, {
+    size: 20
+  }), " Học xong rồi, đi kiểm tra!")), screen === "game" && q && /*#__PURE__*/React.createElement("div", {
+    className: "pop-in"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mb-4"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setScreen("menu"),
+    className: "p-2 rounded-full shadow bg-white/80",
+    "aria-label": "Về trang chủ"
+  }, /*#__PURE__*/React.createElement(Home, {
+    size: 20,
+    color: INK
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 font-display font-extrabold text-lg"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-2xl"
+  }, theme.emoji), " Kiểm tra: ", tableKey === "mix" ? "Tổng hợp" : `Bảng ${tableKey}`), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMuted(m => !m),
+    className: "p-2 rounded-full shadow bg-white/80",
+    "aria-label": "Bật/tắt âm thanh"
+  }, muted ? /*#__PURE__*/React.createElement(VolumeX, {
+    size: 20,
+    color: INK
+  }) : /*#__PURE__*/React.createElement(Volume2, {
+    size: 20,
+    color: INK
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-wrap justify-center gap-1.5 mb-5"
+  }, answers.map((a, i) => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    className: "rounded-full",
+    style: {
+      width: 12,
+      height: 12,
+      backgroundColor: a === "correct" ? "#58C93C" : a === "wrong" ? "#FF7A6B" : "#FFFFFF",
+      border: i === index ? `2px solid ${theme.color}` : "2px solid #D9EFE0"
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "rounded-3xl shadow-xl p-6 text-center relative overflow-hidden",
+    style: {
+      backgroundColor: "#FFFDF6",
+      border: `3px solid ${theme.color}`
+    }
+  }, confetti.map(c => /*#__PURE__*/React.createElement("span", {
+    key: c.id,
+    className: "confetti-piece",
+    style: {
+      left: `${c.left}%`,
+      animationDelay: `${c.delay}s`
+    }
+  }, c.emoji)), /*#__PURE__*/React.createElement("div", {
+    className: `text-6xl mb-2 ${mascotAnim}`
+  }, theme.emoji), /*#__PURE__*/React.createElement("div", {
+    className: "font-display font-extrabold text-5xl my-4",
+    style: {
+      color: INK
+    }
+  }, q.table, " × ", q.multiplier, " = ?"), answered && /*#__PURE__*/React.createElement("div", {
+    className: "font-display font-bold text-lg mb-2 pop-in",
+    style: {
+      color: selected === q.correct ? "#3E9C58" : "#E85A4A"
+    }
+  }, msg, selected !== q.correct && /*#__PURE__*/React.createElement("div", {
+    className: "text-sm font-bold opacity-80 mt-1"
+  }, "Đáp án đúng là ", q.table, " × ", q.multiplier, " = ", q.correct))), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-3 mt-5"
+  }, q.options.map(opt => {
+    let bg = "#FFFFFF";
+    let border = "#D9EFE0";
+    let textColor = INK;
+    if (answered) {
+      if (opt === q.correct) {
+        bg = "#DFF6E4";
+        border = "#58C97C";
+      } else if (opt === selected) {
+        bg = "#FFE3DF";
+        border = "#FF7A6B";
+      } else {
+        bg = "#F5F5F0";
+        border = "#E5E5DE";
+        textColor = "#A9A9A0";
+      }
+    }
+    return /*#__PURE__*/React.createElement("button", {
+      key: opt,
+      disabled: answered,
+      onClick: () => handleAnswer(opt),
+      className: "opt-btn rounded-2xl py-6 font-display font-extrabold text-3xl shadow-md",
+      style: {
+        backgroundColor: bg,
+        border: `3px solid ${border}`,
+        color: textColor
+      }
+    }, opt);
+  })), answered && /*#__PURE__*/React.createElement("button", {
+    onClick: nextQuestion,
+    className: "w-full mt-5 rounded-2xl py-4 font-display font-extrabold text-xl shadow-lg text-white",
+    style: {
+      backgroundColor: theme.color
+    }
+  }, index + 1 < questions.length ? "Câu tiếp theo →" : "Xem kết quả 🎉"), /*#__PURE__*/React.createElement("p", {
+    className: "text-center text-sm font-bold opacity-60 mt-4"
+  }, "Câu ", index + 1, " / ", questions.length, " · ⭐ ", score)), screen === "result" && /*#__PURE__*/React.createElement("div", {
+    className: "pop-in text-center"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-7xl mb-3"
+  }, theme.emoji), /*#__PURE__*/React.createElement("h2", {
+    className: "font-display font-extrabold text-3xl mb-2"
+  }, resultMsg), /*#__PURE__*/React.createElement("div", {
+    className: "text-4xl mb-4"
+  }, "⭐".repeat(stars), "☆".repeat(3 - stars)), /*#__PURE__*/React.createElement("div", {
+    className: "inline-block rounded-2xl px-6 py-3 font-display font-extrabold text-2xl shadow-md mb-6",
+    style: {
+      backgroundColor: theme.soft,
+      border: `3px solid ${theme.color}`
+    }
+  }, "Đúng ", score, " / ", questions.length, " câu"), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-3 max-w-xs mx-auto"
+  }, typeof tableKey === "number" && /*#__PURE__*/React.createElement("button", {
+    onClick: () => startLearn(tableKey),
+    className: "rounded-2xl py-4 font-display font-extrabold text-lg shadow-lg bg-white flex items-center justify-center gap-2",
+    style: {
+      border: `3px solid ${theme.color}`,
+      color: INK
+    }
+  }, /*#__PURE__*/React.createElement(BookOpen, {
+    size: 20
+  }), " Học lại"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => startGame(tableKey),
+    className: "rounded-2xl py-4 font-display font-extrabold text-lg shadow-lg text-white flex items-center justify-center gap-2",
+    style: {
+      backgroundColor: theme.color
+    }
+  }, /*#__PURE__*/React.createElement(RotateCcw, {
+    size: 20
+  }), " Chơi lại"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setScreen("menu"),
+    className: "rounded-2xl py-4 font-display font-extrabold text-lg shadow-lg flex items-center justify-center gap-2 bg-white",
+    style: {
+      border: `3px solid ${INK}`
+    }
+  }, /*#__PURE__*/React.createElement(Home, {
+    size: 20
+  }), " Chọn bảng khác")))));
 }
-
 const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<MultiplicationForest />);
+root.render(/*#__PURE__*/React.createElement(MultiplicationForest, null));
 </script>
 </body>
 </html>
