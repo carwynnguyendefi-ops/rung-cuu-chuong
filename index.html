@@ -31,7 +31,8 @@
 <script>
 const {
   useState,
-  useRef
+  useRef,
+  useEffect
 } = React;
 
 /* ---- Thay thế icon lucide-react bằng SVG đơn giản (không cần cài thêm gói) ---- */
@@ -173,9 +174,34 @@ const THEME = {
     name: "Sư Tử Nhỏ",
     color: "#FF7A6B",
     soft: "#FFE3DE"
+  },
+  review: {
+    emoji: "🧠",
+    name: "Trí Khôn",
+    color: "#5B8DEF",
+    soft: "#E7F0FE"
   }
 };
 const INK = "#2E4B3F";
+const MNEMONICS = {
+  1: "Nhân với 1 thì giữ nguyên — số nào nhân 1 cũng ra chính nó!",
+  2: "Bảng 2 chính là \"gấp đôi\"! Đếm cách 2: 2, 4, 6, 8, 10...",
+  3: "Đếm cách 3: 3, 6, 9, 12... Thử vỗ tay theo nhịp 3 để nhớ nhanh hơn!",
+  4: "Bảng 4 = gấp đôi của gấp đôi! Ví dụ 4×3: gấp đôi 3 được 6, gấp đôi 6 được 12.",
+  5: "Bảng 5 luôn tận cùng là 0 hoặc 5. Đếm như xem đồng hồ: 5, 10, 15, 20...",
+  6: "Bảng 6 = Bảng 5 + chính số đó. Ví dụ 6×4 = (5×4) + 4 = 20 + 4 = 24.",
+  7: "Bảng 7 khó nhất nên học từ từ. Nhớ mẹo: 7×8 = 56, cứ đọc \"5,6,7,8\" là ra 56 = 7×8!",
+  8: "Bảng 8 = gấp đôi của bảng 4! Ví dụ 8×3: bảng 4 có 4×3=12, gấp đôi lên là 24.",
+  9: "Mẹo ngón tay thần kỳ! Gập ngón tay thứ mấy thì bên trái là chục, bên phải là đơn vị.",
+  10: "Bảng 10 dễ nhất — chỉ cần thêm số 0 vào sau số đó!"
+};
+function fingerTrickDigits(multiplier) {
+  const m = Math.max(1, Math.min(9, multiplier));
+  return {
+    left: m - 1,
+    right: 10 - m
+  };
+}
 const TABLE_KEYS = Array.from({
   length: 10
 }, (_, i) => i + 1);
@@ -209,7 +235,23 @@ function makeQuestion(table, multiplier) {
     options
   };
 }
-function generateQuestions(tableKey) {
+function generateQuestions(tableKey, progress) {
+  if (tableKey === "review") {
+    const scored = [];
+    TABLE_KEYS.forEach(t => {
+      for (let m = 1; m <= 10; m++) {
+        const f = progress && progress.facts[factKey(t, m)];
+        scored.push({
+          t,
+          m,
+          score: weaknessScore(f) + Math.random() * 0.75
+        });
+      }
+    });
+    scored.sort((a, b) => b.score - a.score);
+    const picked = shuffle(scored.slice(0, 14));
+    return picked.map(x => makeQuestion(x.t, x.m));
+  }
   if (tableKey === "mix") {
     let qs = [];
     TABLE_KEYS.forEach(t => {
@@ -219,10 +261,359 @@ function generateQuestions(tableKey) {
     return shuffle(qs);
   }
   const mult = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-  return mult.map(m => makeQuestion(tableKey, m));
+  const qs = mult.map(m => makeQuestion(tableKey, m));
+  if (progress) {
+    const weakMs = [];
+    for (let m = 1; m <= 10; m++) {
+      const f = progress.facts[factKey(tableKey, m)];
+      const acc = factAccuracy(f);
+      if (f && f.seen >= 1 && acc !== null && acc < 0.7) weakMs.push(m);
+    }
+    shuffle(weakMs).slice(0, 2).forEach(m => qs.push(makeQuestion(tableKey, m)));
+  }
+  return qs;
 }
 function buildHint(table, multiplier, correct) {
   return `${table} × ${multiplier} nghĩa là có ${table} nhóm, mỗi nhóm ${multiplier} ô. Gộp lại được tất cả ${correct} ô vuông!`;
+}
+
+/* ==================== Lưu trữ tiến độ & Ôn tập thông minh ==================== */
+const STORAGE_KEY = "cuuChuong_progress_v1";
+function loadProgress() {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        return {
+          facts: parsed.facts || {},
+          totalPlayMs: parsed.totalPlayMs || 0,
+          sessionsPlayed: parsed.sessionsPlayed || 0,
+          firstUsed: parsed.firstUsed || Date.now()
+        };
+      }
+    }
+  } catch (e) {}
+  return {
+    facts: {},
+    totalPlayMs: 0,
+    sessionsPlayed: 0,
+    firstUsed: Date.now()
+  };
+}
+function saveProgress(data) {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {}
+}
+function factKey(table, multiplier) {
+  return `${table}x${multiplier}`;
+}
+function recordAnswer(data, table, multiplier, isCorrect, elapsedMs) {
+  const key = factKey(table, multiplier);
+  const prev = data.facts[key] || {
+    seen: 0,
+    wrong: 0,
+    streak: 0,
+    avgMs: 3500,
+    lastSeen: 0
+  };
+  const next = {
+    seen: prev.seen + 1,
+    wrong: prev.wrong + (isCorrect ? 0 : 1),
+    streak: isCorrect ? prev.streak + 1 : 0,
+    avgMs: Math.round(prev.avgMs * 0.65 + Math.min(elapsedMs, 15000) * 0.35),
+    lastSeen: Date.now()
+  };
+  data.facts = { ...data.facts, [key]: next };
+  return data;
+}
+function factAccuracy(f) {
+  if (!f || f.seen === 0) return null;
+  return (f.seen - f.wrong) / f.seen;
+}
+function weaknessScore(f) {
+  if (!f) return 6; // chưa từng gặp -> ưu tiên trung bình để bé được ôn đủ mọi phép tính
+  const acc = factAccuracy(f);
+  let score = (1 - acc) * 12;
+  if (f.avgMs > 5000) score += 3;
+  score -= Math.min(f.streak, 5) * 0.6;
+  return score;
+}
+function computeTableMastery(data, table) {
+  let seen = 0,
+    wrong = 0,
+    attempted = 0;
+  for (let m = 1; m <= 10; m++) {
+    const f = data.facts[factKey(table, m)];
+    if (f && f.seen > 0) {
+      attempted++;
+      seen += f.seen;
+      wrong += f.wrong;
+    }
+  }
+  if (attempted === 0) return null;
+  return {
+    attempted,
+    accuracy: seen ? (seen - wrong) / seen : 0
+  };
+}
+function weakestFacts(data, limit) {
+  const list = [];
+  TABLE_KEYS.forEach(t => {
+    for (let m = 1; m <= 10; m++) {
+      const f = data.facts[factKey(t, m)];
+      if (f && f.seen >= 2 && f.wrong > 0) {
+        list.push({
+          table: t,
+          multiplier: m,
+          accuracy: factAccuracy(f),
+          wrong: f.wrong,
+          seen: f.seen
+        });
+      }
+    }
+  });
+  list.sort((a, b) => a.accuracy - b.accuracy || b.wrong - a.wrong);
+  return list.slice(0, limit);
+}
+function formatDuration(ms) {
+  const totalMin = Math.round(ms / 60000);
+  if (totalMin < 1) return "dưới 1 phút";
+  if (totalMin < 60) return `${totalMin} phút`;
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return m ? `${h} giờ ${m} phút` : `${h} giờ`;
+}
+function SwipeScreen({
+  theme,
+  deck,
+  index,
+  setIndex,
+  onExit,
+  muted,
+  setMuted,
+  speak,
+  INK
+}) {
+  const total = deck.length;
+  const isDone = index >= total;
+  const card = !isDone ? deck[index] : null;
+  const cardTheme = card ? THEME[card.table] || theme : theme;
+  const touchY = useRef(null);
+  const spokenRef = useRef(-1);
+  const goNext = () => setIndex(i => Math.min(i + 1, total));
+  const goPrev = () => setIndex(i => Math.max(i - 1, 0));
+  useEffect(() => {
+    if (card && spokenRef.current !== index) {
+      spokenRef.current = index;
+      if (!muted) speak(`${card.table} nhân ${card.multiplier} bằng ${card.table * card.multiplier}`);
+    }
+  }, [index]);
+  useEffect(() => {
+    const onKey = e => {
+      if (e.key === "ArrowUp" || e.key === " ") {
+        e.preventDefault();
+        goNext();
+      } else if (e.key === "ArrowDown") {
+        goPrev();
+      } else if (e.key === "Escape") {
+        onExit();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  const handleTouchStart = e => {
+    touchY.current = e.touches[0].clientY;
+  };
+  const handleTouchEnd = e => {
+    if (touchY.current == null) return;
+    const dy = touchY.current - e.changedTouches[0].clientY;
+    if (dy > 40) goNext();else if (dy < -40) goPrev();
+    touchY.current = null;
+  };
+  if (isDone) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "pop-in",
+      style: {
+        minHeight: "70vh",
+        display: "flex",
+        flexDirection: "column"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center justify-between mb-4"
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: onExit,
+      className: "p-2 rounded-full shadow bg-white/80",
+      "aria-label": "Về trang chủ"
+    }, /*#__PURE__*/React.createElement(Home, {
+      size: 20,
+      color: INK
+    })), /*#__PURE__*/React.createElement("div", {
+      className: "font-display font-extrabold text-lg"
+    }, "🎬 Lướt để nhớ"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 36
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      className: "rounded-3xl shadow-xl flex-1 flex flex-col items-center justify-center text-center p-8",
+      style: {
+        backgroundColor: "#FFFDF6",
+        border: `3px solid ${theme.color}`
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "text-7xl mb-4"
+    }, "🎉"), /*#__PURE__*/React.createElement("h2", {
+      className: "font-display font-extrabold text-2xl mb-2"
+    }, "Xong rồi! Bé giỏi quá!"), /*#__PURE__*/React.createElement("p", {
+      className: "text-sm font-bold opacity-70 mb-6"
+    }, "Đã lướt qua ", total, " phép tính. Ôn lại thường xuyên để nhớ lâu hơn nhé!"), /*#__PURE__*/React.createElement("div", {
+      className: "flex flex-col gap-3 w-full max-w-xs"
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => setIndex(0),
+      className: "rounded-2xl py-4 font-display font-extrabold text-lg shadow-lg text-white flex items-center justify-center gap-2",
+      style: {
+        backgroundColor: theme.color
+      }
+    }, /*#__PURE__*/React.createElement(RotateCcw, {
+      size: 20
+    }), " Lướt lại"), /*#__PURE__*/React.createElement("button", {
+      onClick: onExit,
+      className: "rounded-2xl py-4 font-display font-extrabold text-lg shadow-lg bg-white flex items-center justify-center gap-2",
+      style: {
+        border: `3px solid ${INK}`,
+        color: INK
+      }
+    }, /*#__PURE__*/React.createElement(Home, {
+      size: 20
+    }), " Về trang chủ"))));
+  }
+  const correct = card.table * card.multiplier;
+  const groups = Array.from({
+    length: card.table
+  });
+  const floatEmojis = ["✨", "🍃", "⭐", "🌸", "💫", "🌿"];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "pop-in"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-1 mb-3"
+  }, deck.map((_, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      flex: 1,
+      height: 4,
+      borderRadius: 4,
+      backgroundColor: i <= index ? cardTheme.color : "#E5E5DE",
+      transition: "background-color 0.2s ease"
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mb-3"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onExit,
+    className: "p-2 rounded-full shadow bg-white/80",
+    "aria-label": "Về trang chủ"
+  }, /*#__PURE__*/React.createElement(Home, {
+    size: 18,
+    color: INK
+  })), /*#__PURE__*/React.createElement("span", {
+    className: "text-xs font-bold opacity-60"
+  }, index + 1, " / ", total), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMuted(m => !m),
+    className: "p-2 rounded-full shadow bg-white/80",
+    "aria-label": "Bật/tắt âm thanh"
+  }, muted ? /*#__PURE__*/React.createElement(VolumeX, {
+    size: 18,
+    color: INK
+  }) : /*#__PURE__*/React.createElement(Volume2, {
+    size: 18,
+    color: INK
+  }))), /*#__PURE__*/React.createElement("div", {
+    onTouchStart: handleTouchStart,
+    onTouchEnd: handleTouchEnd,
+    onClick: goNext,
+    className: "swipe-card rounded-3xl shadow-2xl relative overflow-hidden select-none",
+    style: {
+      background: `linear-gradient(160deg, ${cardTheme.soft} 0%, #FFFFFF 60%)`,
+      border: `3px solid ${cardTheme.color}`,
+      minHeight: "62vh",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "24px",
+      cursor: "pointer"
+    }
+  }, Array.from({
+    length: 6
+  }).map((_, i) => /*#__PURE__*/React.createElement("span", {
+    key: "f" + index + "-" + i,
+    className: "floaty",
+    style: {
+      position: "absolute",
+      left: `${(i * 37 + 10) % 90}%`,
+      top: `${(i * 53 + 5) % 90}%`,
+      fontSize: 20 + i % 3 * 6,
+      opacity: 0.25,
+      animationDelay: `${i * 0.4}s`
+    }
+  }, floatEmojis[i])), /*#__PURE__*/React.createElement("div", {
+    key: "mascot-" + index,
+    className: "swipe-pop text-8xl mb-3"
+  }, cardTheme.emoji), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-wrap justify-center gap-2 mb-4",
+    style: {
+      maxWidth: 260
+    }
+  }, groups.map((_, gi) => /*#__PURE__*/React.createElement("div", {
+    key: "g" + index + "-" + gi,
+    className: "swipe-pop",
+    style: {
+      display: "flex",
+      gap: 3,
+      padding: 6,
+      borderRadius: 12,
+      backgroundColor: "rgba(255,255,255,0.75)",
+      border: `2px solid ${cardTheme.color}`,
+      animationDelay: `${0.15 + gi * 0.08}s`
+    }
+  }, Array.from({
+    length: card.multiplier
+  }).map((_, di) => /*#__PURE__*/React.createElement("span", {
+    key: di,
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: "50%",
+      backgroundColor: cardTheme.color,
+      display: "inline-block"
+    }
+  }))))), /*#__PURE__*/React.createElement("div", {
+    key: "eq-" + index,
+    className: "swipe-pop-big font-display font-extrabold text-center",
+    style: {
+      color: INK
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 44
+    }
+  }, card.table, " × ", card.multiplier, " = ", correct)), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm font-bold opacity-70 text-center mt-3",
+    style: {
+      maxWidth: 260
+    }
+  }, card.table, " nhóm, mỗi nhóm ", card.multiplier, " → tất cả ", correct, "!"), index === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "swipe-hint text-center",
+    style: {
+      position: "absolute",
+      bottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-2xl"
+  }, "↑"), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs font-bold opacity-60"
+  }, "Vuốt lên để xem tiếp"))));
 }
 function MultiplicationForest() {
   const [screen, setScreen] = useState("menu");
@@ -234,13 +625,49 @@ function MultiplicationForest() {
   const [answered, setAnswered] = useState(false);
   const [score, setScore] = useState(0);
   const [muted, setMuted] = useState(false);
+  const [answerMode, setAnswerMode] = useState("choice"); // "choice" (trắc nghiệm) | "input" (tự luận)
+  const [typedAnswer, setTypedAnswer] = useState("");
+  const [swipeDeck, setSwipeDeck] = useState([]);
+  const [swipeIndex, setSwipeIndex] = useState(0);
   const [confetti, setConfetti] = useState([]);
   const [mascotAnim, setMascotAnim] = useState("");
   const [learnIndex, setLearnIndex] = useState(0);
   const [visited, setVisited] = useState(Array(10).fill(false));
+  const [progress, setProgress] = useState(loadProgress);
+  const [gateAnswer, setGateAnswer] = useState("");
+  const [gateError, setGateError] = useState(false);
+  const [gateQ, setGateQ] = useState(() => ({
+    a: 20 + Math.floor(Math.random() * 40),
+    b: 15 + Math.floor(Math.random() * 40)
+  }));
   const idRef = useRef(0);
+  const progressRef = useRef(progress);
+  const questionStartRef = useRef(Date.now());
+  progressRef.current = progress;
   const theme = THEME[tableKey];
   const q = questions[index];
+
+  // Theo dõi thời gian chơi để hiển thị cho phụ huynh
+  useEffect(() => {
+    const iv = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        setProgress(p => {
+          const next = { ...p, totalPlayMs: p.totalPlayMs + 15000 };
+          saveProgress(next);
+          return next;
+        });
+      }
+    }, 15000);
+    const onHide = () => saveProgress(progressRef.current);
+    window.addEventListener("pagehide", onHide);
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      clearInterval(iv);
+      window.removeEventListener("pagehide", onHide);
+      document.removeEventListener("visibilitychange", onHide);
+      saveProgress(progressRef.current);
+    };
+  }, []);
   const playSound = type => {
     if (muted) return;
     try {
@@ -297,7 +724,7 @@ function MultiplicationForest() {
     setTimeout(() => setConfetti([]), 1400);
   };
   const handleSelectTable = key => {
-    if (key === "mix") {
+    if (key === "mix" || key === "review") {
       startGame(key);
     } else {
       setTableKey(key);
@@ -321,23 +748,48 @@ function MultiplicationForest() {
   };
   const startGame = key => {
     setTableKey(key);
-    const qs = generateQuestions(key);
+    const qs = generateQuestions(key, progressRef.current);
     setQuestions(qs);
     setIndex(0);
     setAnswers(Array(qs.length).fill(null));
     setSelected(null);
     setAnswered(false);
+    setTypedAnswer("");
     setScore(0);
+    questionStartRef.current = Date.now();
     setScreen("game");
+  };
+  const startSwipe = scope => {
+    let deck;
+    if (scope === "all") {
+      const all = [];
+      TABLE_KEYS.forEach(t => {
+        for (let m = 1; m <= 10; m++) all.push({ table: t, multiplier: m });
+      });
+      deck = shuffle(all);
+      setTableKey("mix");
+    } else {
+      deck = Array.from({ length: 10 }, (_, i) => ({ table: scope, multiplier: i + 1 }));
+      setTableKey(scope);
+    }
+    setSwipeDeck(deck);
+    setSwipeIndex(0);
+    setScreen("swipe");
   };
   const handleAnswer = opt => {
     if (answered) return;
     const isCorrect = opt === q.correct;
+    const elapsed = Date.now() - questionStartRef.current;
     setSelected(opt);
     setAnswered(true);
     const next = [...answers];
     next[index] = isCorrect ? "correct" : "wrong";
     setAnswers(next);
+    setProgress(p => {
+      const updated = recordAnswer({ ...p, facts: { ...p.facts } }, q.table, q.multiplier, isCorrect, elapsed);
+      saveProgress(updated);
+      return updated;
+    });
     if (isCorrect) {
       setScore(s => s + 1);
       spawnConfetti();
@@ -348,15 +800,48 @@ function MultiplicationForest() {
       setMascotAnim("mascot-sad");
     }
   };
+  const handleSubmitTyped = () => {
+    if (answered) return;
+    if (typedAnswer.trim() === "") return;
+    const val = parseInt(typedAnswer, 10);
+    if (Number.isNaN(val)) return;
+    handleAnswer(val);
+  };
   const nextQuestion = () => {
     setMascotAnim("");
     if (index + 1 < questions.length) {
       setIndex(i => i + 1);
       setSelected(null);
       setAnswered(false);
+      setTypedAnswer("");
+      questionStartRef.current = Date.now();
     } else {
+      setProgress(p => {
+        const updated = { ...p, sessionsPlayed: p.sessionsPlayed + 1 };
+        saveProgress(updated);
+        return updated;
+      });
       setScreen("result");
     }
+  };
+  const checkGate = () => {
+    if (parseInt(gateAnswer, 10) === gateQ.a + gateQ.b) {
+      setGateError(false);
+      setGateAnswer("");
+      setScreen("parent");
+    } else {
+      setGateError(true);
+    }
+  };
+  const resetProgress = () => {
+    const fresh = {
+      facts: {},
+      totalPlayMs: 0,
+      sessionsPlayed: 0,
+      firstUsed: Date.now()
+    };
+    setProgress(fresh);
+    saveProgress(fresh);
   };
   const msg = answered ? selected === q?.correct ? CORRECT_MSGS[index % CORRECT_MSGS.length] : WRONG_MSGS[index % WRONG_MSGS.length] : "";
   const pct = questions.length ? score / questions.length : 0;
@@ -390,11 +875,34 @@ function MultiplicationForest() {
         .card-btn:hover { transform: translateY(-4px); }
         .chip { transition: transform 0.15s ease; }
         .chip:hover { transform: translateY(-2px) scale(1.05); }
+        @keyframes floaty-drift { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);} }
+        .floaty { animation: floaty-drift 3.2s ease-in-out infinite; }
+        @keyframes swipe-pop-in { 0%{transform:scale(0.7);opacity:0;} 100%{transform:scale(1);opacity:1;} }
+        .swipe-pop { animation: swipe-pop-in 0.4s cubic-bezier(.34,1.56,.64,1) both; }
+        @keyframes swipe-eq-in { 0%{transform:scale(0.5) rotate(-4deg);opacity:0;} 100%{transform:scale(1) rotate(0);opacity:1;} }
+        .swipe-pop-big { animation: swipe-eq-in 0.45s cubic-bezier(.34,1.56,.64,1) both; }
+        @keyframes hint-bounce { 0%,100%{transform:translateY(0);opacity:0.6;} 50%{transform:translateY(-6px);opacity:1;} }
+        .swipe-hint { animation: hint-bounce 1.4s ease-in-out infinite; }
+        .swipe-card { touch-action: pan-y; }
       `), /*#__PURE__*/React.createElement("div", {
     className: "max-w-lg mx-auto px-4 py-6"
   }, screen === "menu" && /*#__PURE__*/React.createElement("div", {
     className: "pop-in"
   }, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-end mb-1"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setGateQ({
+        a: 20 + Math.floor(Math.random() * 40),
+        b: 15 + Math.floor(Math.random() * 40)
+      });
+      setGateAnswer("");
+      setGateError(false);
+      setScreen("parent-gate");
+    },
+    className: "p-2 rounded-full shadow bg-white/80 opacity-80",
+    "aria-label": "Khu vực phụ huynh"
+  }, "🔒")), /*#__PURE__*/React.createElement("div", {
     className: "text-center mb-6"
   }, /*#__PURE__*/React.createElement("h1", {
     className: "font-display text-4xl font-extrabold",
@@ -404,24 +912,85 @@ function MultiplicationForest() {
   }, "🌿 Rừng Cửu Chương 🌿"), /*#__PURE__*/React.createElement("p", {
     className: "mt-2 text-base font-bold opacity-80"
   }, "Cùng bạn thú nhỏ chinh phục bảng nhân từ 1 đến 10 nhé!")), /*#__PURE__*/React.createElement("div", {
-    className: "grid grid-cols-2 sm:grid-cols-3 gap-3"
-  }, TABLE_KEYS.map(k => /*#__PURE__*/React.createElement("button", {
-    key: k,
-    onClick: () => handleSelectTable(k),
-    className: "card-btn rounded-2xl p-3 shadow-md flex flex-col items-center text-center",
+    className: "flex justify-center gap-2 mb-5"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAnswerMode("choice"),
+    className: "chip rounded-full px-4 py-2 font-display font-extrabold text-sm shadow flex items-center gap-1",
     style: {
-      backgroundColor: THEME[k].soft,
-      border: `3px solid ${THEME[k].color}`
+      backgroundColor: answerMode === "choice" ? INK : "#FFFFFF",
+      color: answerMode === "choice" ? "#FFFFFF" : INK,
+      border: `2px solid ${INK}`
+    }
+  }, "🔘 Trắc nghiệm"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAnswerMode("input"),
+    className: "chip rounded-full px-4 py-2 font-display font-extrabold text-sm shadow flex items-center gap-1",
+    style: {
+      backgroundColor: answerMode === "input" ? INK : "#FFFFFF",
+      color: answerMode === "input" ? "#FFFFFF" : INK,
+      border: `2px solid ${INK}`
+    }
+  }, "✏️ Tự luận")), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 sm:grid-cols-3 gap-3"
+  }, TABLE_KEYS.map(k => {
+    const mastery = computeTableMastery(progress, k);
+    const isMastered = mastery && mastery.attempted === 10 && mastery.accuracy >= 0.85;
+    return /*#__PURE__*/React.createElement("button", {
+      key: k,
+      onClick: () => handleSelectTable(k),
+      className: "card-btn rounded-2xl p-3 shadow-md flex flex-col items-center text-center relative",
+      style: {
+        backgroundColor: THEME[k].soft,
+        border: `3px solid ${THEME[k].color}`
+      }
+    }, isMastered && /*#__PURE__*/React.createElement("span", {
+      className: "absolute -top-2 -right-2 text-xl",
+      title: "Đã thuộc bảng này!"
+    }, "🏅"), /*#__PURE__*/React.createElement("span", {
+      className: "text-4xl mb-1"
+    }, THEME[k].emoji), /*#__PURE__*/React.createElement("span", {
+      className: "font-display font-extrabold text-base"
+    }, "Bảng ", k), /*#__PURE__*/React.createElement("span", {
+      className: "text-xs font-bold opacity-70"
+    }, THEME[k].name));
+  }))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => startSwipe("all"),
+    className: "card-btn w-full mt-4 rounded-3xl p-5 shadow-lg flex items-center gap-4 text-left text-white relative overflow-hidden",
+    style: {
+      background: "linear-gradient(135deg, #FF7A6B 0%, #7C83FD 100%)"
     }
   }, /*#__PURE__*/React.createElement("span", {
-    className: "text-4xl mb-1"
-  }, THEME[k].emoji), /*#__PURE__*/React.createElement("span", {
-    className: "font-display font-extrabold text-base"
-  }, "Bảng ", k), /*#__PURE__*/React.createElement("span", {
-    className: "text-xs font-bold opacity-70"
-  }, THEME[k].name)))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => handleSelectTable("mix"),
+    className: "text-5xl"
+  }, "🎬"), /*#__PURE__*/React.createElement("div", {
+    className: "flex-1"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "font-display font-extrabold text-lg"
+  }, "Lướt để nhớ"), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs font-bold opacity-90"
+  }, "Vuốt lên như xem video, ghi nhớ mọi lúc mọi nơi")), /*#__PURE__*/React.createElement("span", {
+    className: "font-display font-extrabold text-sm"
+  }, "Bắt đầu ▶")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => handleSelectTable("review"),
     className: "card-btn w-full mt-4 rounded-3xl p-5 shadow-lg flex items-center gap-4 text-left",
+    style: {
+      backgroundColor: THEME.review.soft,
+      border: `3px solid ${THEME.review.color}`
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-5xl"
+  }, THEME.review.emoji), /*#__PURE__*/React.createElement("div", {
+    className: "flex-1"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "font-display font-extrabold text-lg"
+  }, "🧠 Ôn tập thông minh"), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs font-bold opacity-70"
+  }, "Tự động ôn lại những phép tính bé hay quên")), /*#__PURE__*/React.createElement("span", {
+    className: "font-display font-extrabold text-sm",
+    style: {
+      color: THEME.review.color
+    }
+  }, "Bắt đầu ▶")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => handleSelectTable("mix"),
+    className: "card-btn w-full mt-3 rounded-3xl p-5 shadow-lg flex items-center gap-4 text-left",
     style: {
       backgroundColor: THEME.mix.soft,
       border: `3px solid ${THEME.mix.color}`
@@ -480,7 +1049,13 @@ function MultiplicationForest() {
     }
   }, /*#__PURE__*/React.createElement(PencilLine, {
     size: 22
-  }), " Kiểm tra"))), screen === "learn" && typeof tableKey === "number" && /*#__PURE__*/React.createElement("div", {
+  }), " Kiểm tra"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => startSwipe(tableKey),
+    className: "card-btn rounded-2xl py-4 font-display font-extrabold text-lg shadow-lg text-white flex items-center justify-center gap-2",
+    style: {
+      background: "linear-gradient(135deg, #FF7A6B 0%, #7C83FD 100%)"
+    }
+  }, "🎬 Học lướt"))), screen === "learn" && typeof tableKey === "number" && /*#__PURE__*/React.createElement("div", {
     className: "pop-in"
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between mb-4"
@@ -541,6 +1116,39 @@ function MultiplicationForest() {
   }))), /*#__PURE__*/React.createElement("p", {
     className: "text-base font-bold opacity-80 mt-4 leading-relaxed"
   }, buildHint(tableKey, lm, lCorrect))), /*#__PURE__*/React.createElement("div", {
+    className: "rounded-2xl p-4 mt-4 text-left",
+    style: {
+      backgroundColor: theme.soft,
+      border: `2px dashed ${theme.color}`
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "text-sm font-extrabold flex items-start gap-2"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-lg"
+  }, "💡"), /*#__PURE__*/React.createElement("span", null, MNEMONICS[tableKey])), tableKey === 9 && /*#__PURE__*/React.createElement("div", {
+    className: "mt-3"
+  }, lm <= 9 ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-end justify-center gap-1.5 mb-2"
+  }, Array.from({
+    length: 10
+  }).map((_, i) => {
+    const n = i + 1;
+    const bent = n === lm;
+    return /*#__PURE__*/React.createElement("div", {
+      key: i,
+      title: `Ngón ${n}`,
+      style: {
+        width: 15,
+        height: bent ? 12 : 32,
+        borderRadius: 7,
+        backgroundColor: bent ? "#D9D9D0" : theme.color
+      }
+    });
+  })), /*#__PURE__*/React.createElement("p", {
+    className: "text-xs font-bold text-center opacity-80"
+  }, "Gập ngón tay thứ ", lm, ": bên trái có ", fingerTrickDigits(lm).left, " ngón (hàng chục), bên phải có ", fingerTrickDigits(lm).right, " ngón (hàng đơn vị) → ", tableKey, " × ", lm, " = ", fingerTrickDigits(lm).left, "" + fingerTrickDigits(lm).right)) : /*#__PURE__*/React.createElement("p", {
+    className: "text-xs font-bold text-center opacity-80"
+  }, "9 × 10 = 90 — dễ mà, cứ lấy 9 rồi thêm một số 0 vào sau!"))), /*#__PURE__*/React.createElement("div", {
     className: "mt-5"
   }, /*#__PURE__*/React.createElement("p", {
     className: "text-sm font-bold opacity-60 text-center mb-2"
@@ -654,7 +1262,7 @@ function MultiplicationForest() {
     }
   }, msg, selected !== q.correct && /*#__PURE__*/React.createElement("div", {
     className: "text-sm font-bold opacity-80 mt-1"
-  }, "Đáp án đúng là ", q.table, " × ", q.multiplier, " = ", q.correct))), /*#__PURE__*/React.createElement("div", {
+  }, "Đáp án đúng là ", q.table, " × ", q.multiplier, " = ", q.correct))), answerMode === "choice" ? /*#__PURE__*/React.createElement("div", {
     className: "grid grid-cols-2 gap-3 mt-5"
   }, q.options.map(opt => {
     let bg = "#FFFFFF";
@@ -684,7 +1292,34 @@ function MultiplicationForest() {
         color: textColor
       }
     }, opt);
-  })), answered && /*#__PURE__*/React.createElement("button", {
+  })) : /*#__PURE__*/React.createElement("div", {
+    className: "mt-5"
+  }, /*#__PURE__*/React.createElement("input", {
+    key: "typed-input",
+    type: "number",
+    inputMode: "numeric",
+    autoFocus: true,
+    disabled: answered,
+    value: typedAnswer,
+    onChange: e => setTypedAnswer(e.target.value),
+    onKeyDown: e => {
+      if (e.key === "Enter") handleSubmitTyped();
+    },
+    placeholder: "Nhập đáp án...",
+    className: "w-full text-center text-4xl font-display font-extrabold rounded-2xl py-4 shadow-md",
+    style: {
+      border: `3px solid ${answered ? selected === q.correct ? "#58C97C" : "#FF7A6B" : theme.color}`,
+      backgroundColor: answered ? selected === q.correct ? "#DFF6E4" : "#FFE3DF" : "#FFFFFF",
+      color: INK
+    }
+  }), !answered && /*#__PURE__*/React.createElement("button", {
+    onClick: handleSubmitTyped,
+    disabled: typedAnswer.trim() === "",
+    className: "w-full mt-3 rounded-2xl py-3 font-display font-extrabold text-lg shadow-lg text-white disabled:opacity-40",
+    style: {
+      backgroundColor: theme.color
+    }
+  }, "Kiểm tra ✓")), answered && /*#__PURE__*/React.createElement("button", {
     onClick: nextQuestion,
     className: "w-full mt-5 rounded-2xl py-4 font-display font-extrabold text-xl shadow-lg text-white",
     style: {
@@ -733,7 +1368,159 @@ function MultiplicationForest() {
     }
   }, /*#__PURE__*/React.createElement(Home, {
     size: 20
-  }), " Chọn bảng khác")))));
+  }), " Chọn bảng khác"))), screen === "swipe" && /*#__PURE__*/React.createElement(SwipeScreen, {
+    theme: theme,
+    deck: swipeDeck,
+    index: swipeIndex,
+    setIndex: setSwipeIndex,
+    onExit: () => setScreen("menu"),
+    muted: muted,
+    setMuted: setMuted,
+    speak: speak,
+    INK: INK
+  }), screen === "parent-gate" && React.createElement("div", {
+    className: "pop-in text-center"
+  }, React.createElement("div", {
+    className: "flex justify-start mb-4"
+  }, React.createElement("button", {
+    onClick: () => setScreen("menu"),
+    className: "p-2 rounded-full shadow bg-white/80",
+    "aria-label": "Về trang chủ"
+  }, React.createElement(Home, {
+    size: 20,
+    color: INK
+  }))), React.createElement("div", {
+    className: "text-6xl mb-3"
+  }, "🔒"), React.createElement("h2", {
+    className: "font-display font-extrabold text-2xl mb-2"
+  }, "Khu vực dành cho phụ huynh"), React.createElement("p", {
+    className: "text-sm font-bold opacity-70 mb-4 max-w-xs mx-auto"
+  }, "Để xem tiến độ học tập của bé, ba mẹ hãy giải nhanh phép tính này nhé:"), React.createElement("div", {
+    className: "rounded-3xl shadow-xl p-6 max-w-xs mx-auto",
+    style: {
+      backgroundColor: "#FFFDF6",
+      border: `3px solid ${INK}`
+    }
+  }, React.createElement("div", {
+    className: "font-display font-extrabold text-3xl mb-4"
+  }, gateQ.a, " + ", gateQ.b, " = ?"), React.createElement("input", {
+    type: "number",
+    inputMode: "numeric",
+    value: gateAnswer,
+    onChange: e => setGateAnswer(e.target.value),
+    onKeyDown: e => {
+      if (e.key === "Enter") checkGate();
+    },
+    className: "w-full text-center text-2xl font-display font-extrabold rounded-xl py-3 mb-3",
+    style: {
+      border: `2px solid ${gateError ? "#E85A4A" : "#D9EFE0"}`
+    }
+  }), gateError && React.createElement("p", {
+    className: "text-sm font-bold mb-2",
+    style: {
+      color: "#E85A4A"
+    }
+  }, "Chưa đúng, thử lại nhé!"), React.createElement("button", {
+    onClick: checkGate,
+    className: "w-full rounded-2xl py-3 font-display font-extrabold text-lg shadow-lg text-white",
+    style: {
+      backgroundColor: INK
+    }
+  }, "Vào xem tiến độ"))), screen === "parent" && React.createElement("div", {
+    className: "pop-in"
+  }, React.createElement("div", {
+    className: "flex items-center justify-between mb-4"
+  }, React.createElement("button", {
+    onClick: () => setScreen("menu"),
+    className: "p-2 rounded-full shadow bg-white/80",
+    "aria-label": "Về trang chủ"
+  }, React.createElement(Home, {
+    size: 20,
+    color: INK
+  })), React.createElement("div", {
+    className: "font-display font-extrabold text-lg"
+  }, "Bảng theo dõi của phụ huynh"), React.createElement("span", {
+    className: "text-2xl"
+  }, "📊")), React.createElement("div", {
+    className: "rounded-2xl shadow-md p-4 mb-3 flex items-center gap-3",
+    style: {
+      backgroundColor: "#FFFDF6",
+      border: `2px solid ${INK}`
+    }
+  }, React.createElement("span", {
+    className: "text-3xl"
+  }, "⏱️"), React.createElement("div", null, React.createElement("div", {
+    className: "font-display font-extrabold text-lg"
+  }, formatDuration(progress.totalPlayMs)), React.createElement("div", {
+    className: "text-xs font-bold opacity-60"
+  }, "Tổng thời gian đã luyện tập · ", progress.sessionsPlayed, " lượt chơi"))), React.createElement("div", {
+    className: "rounded-2xl shadow-md p-4 mb-3",
+    style: {
+      backgroundColor: "#FFFDF6",
+      border: `2px solid ${INK}`
+    }
+  }, React.createElement("div", {
+    className: "font-display font-extrabold text-base mb-3"
+  }, "📈 Mức độ thuộc bài theo từng bảng"), React.createElement("div", {
+    className: "flex flex-col gap-2"
+  }, TABLE_KEYS.map(k => {
+    const mastery = computeTableMastery(progress, k);
+    const pctv = mastery ? Math.round(mastery.accuracy * 100) : null;
+    return React.createElement("div", {
+      key: k,
+      className: "flex items-center gap-2"
+    }, React.createElement("span", {
+      className: "text-lg w-6"
+    }, THEME[k].emoji), React.createElement("span", {
+      className: "text-xs font-bold w-14"
+    }, "Bảng ", k), React.createElement("div", {
+      className: "flex-1 rounded-full overflow-hidden",
+      style: {
+        backgroundColor: "#EDEDE5",
+        height: 10
+      }
+    }, React.createElement("div", {
+      style: {
+        width: `${pctv || 0}%`,
+        backgroundColor: THEME[k].color,
+        height: "100%"
+      }
+    })), React.createElement("span", {
+      className: "text-xs font-bold w-10 text-right"
+    }, pctv === null ? "—" : `${pctv}%`));
+  }))), React.createElement("div", {
+    className: "rounded-2xl shadow-md p-4 mb-3",
+    style: {
+      backgroundColor: "#FFFDF6",
+      border: `2px solid ${INK}`
+    }
+  }, React.createElement("div", {
+    className: "font-display font-extrabold text-base mb-3"
+  }, "🎯 Phép tính bé hay nhầm nhất"), (() => {
+    const weak = weakestFacts(progress, 6);
+    if (weak.length === 0) {
+      return React.createElement("p", {
+        className: "text-sm font-bold opacity-60"
+      }, "Chưa đủ dữ liệu — bé cứ luyện tập thêm nhé!");
+    }
+    return React.createElement("div", {
+      className: "flex flex-col gap-1.5"
+    }, weak.map((f, i) => React.createElement("div", {
+      key: i,
+      className: "flex items-center justify-between text-sm font-bold"
+    }, React.createElement("span", null, f.table, " × ", f.multiplier, " = ", f.table * f.multiplier), React.createElement("span", {
+      className: "opacity-60"
+    }, "sai ", f.wrong, "/", f.seen, " lần"))));
+  })()), React.createElement("button", {
+    onClick: () => {
+      if (window.confirm("Xoá toàn bộ tiến độ đã lưu? Hành động này không thể hoàn tác.")) resetProgress();
+    },
+    className: "w-full rounded-2xl py-3 font-display font-extrabold text-sm shadow bg-white",
+    style: {
+      border: "2px solid #E85A4A",
+      color: "#E85A4A"
+    }
+  }, "🗑️ Xoá toàn bộ tiến độ")));
 }
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(/*#__PURE__*/React.createElement(MultiplicationForest, null));
