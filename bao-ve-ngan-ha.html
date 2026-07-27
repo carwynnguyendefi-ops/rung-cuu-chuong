@@ -203,6 +203,10 @@
     <h1>🌌 BẢO VỆ NGÂN HÀ</h1>
     <p>Thiên thạch mang đáp án rơi xuống Trái Đất. Đọc phép tính phía trên, di chuyển tàu bằng <b>← →</b> (hoặc chạm/kéo) và bắn bằng <b>Space</b> (hoặc chạm màn hình) để tiêu diệt thiên thạch có đáp án đúng!</p>
     <div>
+      <p style="margin-bottom:6px;font-weight:700;color:#ffe066;">Chọn độ khó:</p>
+      <div class="tablesRow" id="difficultySelect"></div>
+    </div>
+    <div>
       <p style="margin-bottom:6px;font-weight:700;color:#ffe066;">Chọn bảng cửu chương muốn luyện:</p>
       <div class="tablesRow" id="tableSelect"></div>
     </div>
@@ -225,6 +229,7 @@ const comboEl = document.getElementById('combo');
 const overlay = document.getElementById('overlay');
 const startBtn = document.getElementById('startBtn');
 const tableSelect = document.getElementById('tableSelect');
+const difficultySelect = document.getElementById('difficultySelect');
 const feedbackEl = document.getElementById('feedback');
 const soundToggle = document.getElementById('soundToggle');
 const hintEl = document.getElementById('hint');
@@ -268,6 +273,28 @@ function sfxWrong(){ beep(140,0.25,'sawtooth',0.18); beep(90,0.3,'sawtooth',0.14
 function sfxLifeLost(){ beep(200,0.4,'sawtooth',0.2); }
 function sfxLevelUp(){ beep(440,0.1,'triangle',0.15); beep(660,0.1,'triangle',0.15,0.1); beep(880,0.16,'triangle',0.18,0.2); }
 function sfxGameOver(){ beep(300,0.3,'sawtooth',0.2); beep(200,0.3,'sawtooth',0.2,0.2); beep(100,0.5,'sawtooth',0.2,0.4); }
+
+// ---- Difficulty modes (điều chỉnh tốc độ rơi + tần suất/độ nhiễu) ----
+const DIFFICULTIES = {
+  easy:   { label: 'Dễ',        fallSpeedStart: 0.4,  fallSpeedInc: 0.08, spawnInterval: 20, extraDecoys: 0 },
+  medium: { label: 'Trung Bình',fallSpeedStart: 0.6,  fallSpeedInc: 0.11, spawnInterval: 17, extraDecoys: 0 },
+  hard:   { label: 'Khó',       fallSpeedStart: 0.85, fallSpeedInc: 0.14, spawnInterval: 14, extraDecoys: 1 },
+  extreme:{ label: 'Siêu Khó',  fallSpeedStart: 1.15, fallSpeedInc: 0.18, spawnInterval: 11, extraDecoys: 1 },
+};
+let selectedDifficulty = 'easy';
+Object.keys(DIFFICULTIES).forEach(key=>{
+  const b = document.createElement('div');
+  b.className = 'tableBtn';
+  b.textContent = DIFFICULTIES[key].label;
+  b.dataset.diff = key;
+  if (key === selectedDifficulty) b.classList.add('active');
+  b.onclick = () => {
+    selectedDifficulty = key;
+    [...difficultySelect.children].forEach(c=> c.classList.remove('active'));
+    b.classList.add('active');
+  };
+  difficultySelect.appendChild(b);
+});
 
 // ---- Table selection ----
 let selectedTables = new Set();
@@ -457,7 +484,7 @@ function initState(){
   combo = 0;
   maxCombo = 0;
   spawnTimer = 0;
-  fallSpeed = 0.4;
+  fallSpeed = DIFFICULTIES[selectedDifficulty].fallSpeedStart;
   weakStats = {};
   livesEl.textContent = lives;
   scoreEl.textContent = score;
@@ -493,7 +520,8 @@ function newProblem(){
 function spawnWave(){
   const correct = currentProblem.answer;
   const decoys = new Set();
-  while (decoys.size < 2 + (level>3?1:0)) {
+  const extra = DIFFICULTIES[selectedDifficulty].extraDecoys;
+  while (decoys.size < 2 + (level>3?1:0) + extra) {
     const off = (Math.floor(Math.random()*10)-5) || 3;
     let d = correct + off*(Math.random()<0.5?1:2);
     d = Math.max(1, Math.round(d));
@@ -629,7 +657,7 @@ function update(){
 
   if (asteroids.length === 0){
     spawnTimer++;
-    if (spawnTimer > 20){
+    if (spawnTimer > DIFFICULTIES[selectedDifficulty].spawnInterval){
       spawnWave();
       spawnTimer = 0;
     }
@@ -712,7 +740,7 @@ function levelUpCheck(){
   if (score >= level*100){
     level++;
     levelEl.textContent = level;
-    fallSpeed += 0.08;
+    fallSpeed += DIFFICULTIES[selectedDifficulty].fallSpeedInc;
     sfxLevelUp();
     showFeedback('⭐ LÊN CẤP ' + level + '! ⭐', '#7fd1ff');
     spawnBurst(W/2, H/2, '127,209,255', 40, 1.6, 45);
