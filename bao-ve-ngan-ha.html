@@ -5,6 +5,7 @@
 <title>Bảo Vệ Ngân Hà - Luyện Bảng Cửu Chương</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
+  html { -webkit-text-size-adjust:100%; }
   @keyframes pulse {
     0%,100% { transform:scale(1); }
     50% { transform:scale(1.08); }
@@ -23,6 +24,11 @@
     0% { background-position:0% 0%; }
     100% { background-position:0% 100%; }
   }
+  html, body {
+    width:100%;
+    max-width:100%;
+    overflow-x:hidden;
+  }
   body {
     background:#03040d;
     font-family:'Segoe UI', Arial, sans-serif;
@@ -31,10 +37,13 @@
     min-height:100vh;
     overflow:hidden;
     user-select:none;
+    padding:0 8px;
   }
   #wrap {
     position:relative;
     margin-top:12px;
+    width:100%;
+    max-width:480px;
   }
   canvas {
     background:radial-gradient(ellipse at 50% 0%, #0d1240 0%, #030308 70%);
@@ -43,37 +52,43 @@
     box-shadow:0 0 30px rgba(50,120,255,0.45), inset 0 0 60px rgba(20,40,120,0.4);
     display:block;
     touch-action:none;
+    width:100%;
+    max-width:480px;
+    height:auto;
   }
   canvas.shake { animation: shake 0.25s; }
   #hud {
-    width:480px;
+    width:100%;
+    max-width:480px;
     display:flex;
     justify-content:space-between;
-    padding:8px 4px;
-    font-size:15px;
+    padding:6px 2px;
+    font-size:clamp(11px, 3.4vw, 15px);
     font-weight:700;
-    letter-spacing:0.5px;
+    letter-spacing:0.3px;
   }
   #hud .box {
     background:rgba(20,30,70,0.6);
     border:1px solid rgba(120,160,255,0.3);
     border-radius:8px;
-    padding:3px 10px;
+    padding:3px 8px;
+    white-space:nowrap;
   }
   #lives.hit { animation: shake 0.3s; color:#ff5a5a; }
   #combo {
-    font-size:12px; font-weight:800; color:#ff9f4d;
+    font-size:clamp(10px, 3vw, 12px); font-weight:800; color:#ff9f4d;
     text-shadow:0 0 8px rgba(255,150,60,0.8);
     min-height:16px; text-align:center;
   }
   #problem {
-    font-size:36px;
+    font-size:clamp(22px, 7.5vw, 36px);
     font-weight:900;
     text-align:center;
     color:#ffe066;
     text-shadow:0 0 16px rgba(255,224,102,0.85), 0 0 30px rgba(255,150,60,0.4);
     margin:2px 0 0 0;
-    height:46px;
+    height:auto;
+    min-height:38px;
     transition:transform 0.15s;
   }
   #problem.pop { animation: pulse 0.35s ease; }
@@ -82,7 +97,7 @@
     top:40%;
     left:50%;
     transform:translate(-50%,-50%);
-    font-size:40px;
+    font-size:clamp(22px, 7vw, 40px);
     font-weight:900;
     pointer-events:none;
     opacity:0;
@@ -108,45 +123,47 @@
     align-items:center; justify-content:center;
     text-align:center;
     border-radius:8px;
-    gap:14px;
-    padding:20px;
+    gap:clamp(8px, 2.4vw, 14px);
+    padding:clamp(10px, 4vw, 20px);
+    overflow-y:auto;
   }
   #overlay h1 {
-    color:#7fd1ff; font-size:28px;
+    color:#7fd1ff; font-size:clamp(18px, 6vw, 28px);
     text-shadow:0 0 16px #2b6bff, 0 0 30px #7f4dff;
     animation: pulse 2.2s ease-in-out infinite;
   }
-  #overlay p { max-width:400px; line-height:1.5; font-size:14px; color:#b8d4ff; }
-  .tablesRow { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:420px; }
+  #overlay p { max-width:92%; line-height:1.5; font-size:clamp(11.5px, 3.4vw, 14px); color:#b8d4ff; }
+  .tablesRow { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:100%; padding:0 4px; }
   .tableBtn {
-    padding:6px 12px; border-radius:20px; border:1px solid #2b6bff;
-    background:#0d1a3d; color:#9fd0ff; cursor:pointer; font-weight:700; font-size:14px;
+    padding:5px 10px; border-radius:20px; border:1px solid #2b6bff;
+    background:#0d1a3d; color:#9fd0ff; cursor:pointer; font-weight:700; font-size:clamp(11px, 3vw, 14px);
     transition:all 0.15s;
   }
   .tableBtn:hover { transform:translateY(-2px); }
   .tableBtn.active { background:#2b6bff; color:#fff; box-shadow:0 0 12px #2b6bff; }
   button.big {
-    padding:12px 30px; font-size:17px; font-weight:800; border-radius:30px;
+    padding:10px 22px; font-size:clamp(13px, 3.8vw, 17px); font-weight:800; border-radius:30px;
     border:none; cursor:pointer;
     background:linear-gradient(135deg,#2b6bff,#7f4dff);
     color:#fff; box-shadow:0 0 20px rgba(80,120,255,0.6);
     transition:transform 0.12s, box-shadow 0.12s;
+    max-width:92%;
   }
   button.big:hover { transform:scale(1.05); box-shadow:0 0 30px rgba(120,150,255,0.9); }
   button.big:active { transform:scale(0.96); }
-  #hint { font-size:12px; color:#6a86b8; margin-top:2px; }
+  #hint { font-size:clamp(10px, 2.8vw, 12px); color:#6a86b8; margin-top:2px; max-width:92%; }
   .iconBtn {
     position:absolute; top:8px;
     background:rgba(20,30,70,0.6); border:1px solid rgba(120,160,255,0.4);
-    border-radius:50%; width:34px; height:34px; cursor:pointer;
-    display:flex; align-items:center; justify-content:center; font-size:16px;
+    border-radius:50%; width:32px; height:32px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:15px;
     z-index:6;
     transition:transform 0.12s, background 0.12s;
   }
   .iconBtn:hover { transform:scale(1.1); background:rgba(40,60,130,0.8); }
-  #soundToggle { right:10px; }
-  #pauseBtn { left:10px; }
-  #exitBtn { left:52px; }
+  #soundToggle { right:8px; }
+  #pauseBtn { left:8px; }
+  #exitBtn { left:48px; }
   #pauseOverlay {
     position:absolute; inset:0;
     background:rgba(2,4,16,0.92);
@@ -156,7 +173,7 @@
     z-index:8;
   }
   #pauseOverlay h2 {
-    color:#7fd1ff; font-size:26px;
+    color:#7fd1ff; font-size:clamp(18px, 5.5vw, 26px);
     text-shadow:0 0 16px #2b6bff, 0 0 30px #7f4dff;
   }
 </style>
@@ -191,6 +208,7 @@
     </div>
     <button class="big" id="startBtn">🚀 Bắt Đầu</button>
     <p id="hint">Bắn trúng số sai sẽ mất 1 mạng — cẩn thận! Đạt combo cao để nhân điểm 🔥</p>
+    <button class="big" id="homeBtnStart" style="display:none;background:linear-gradient(135deg,#2b8a4f,#4dbf7f);margin-top:2px;">🏠 Về Rừng Cửu Chương</button>
   </div>
 </div>
 
@@ -389,15 +407,26 @@ pauseBtnEl.onclick = () => {
   if (!running) return;
   paused ? resumeGame() : pauseGame();
 };
+// Khi game được nhúng trong Rừng Cửu Chương (iframe), báo cho trang cha biết để quay về menu chính
+// thay vì chỉ reload chính iframe.
+const embeddedInParent = window.parent && window.parent !== window;
+function goToParentMenu(){
+  if (embeddedInParent){
+    try { window.parent.postMessage({ source: 'bao-ve-ngan-ha', type: 'exit-to-menu' }, '*'); }
+    catch(e){ location.reload(); }
+  } else {
+    location.reload();
+  }
+}
 resumeBtn.onclick = () => resumeGame();
-menuExitBtn.onclick = () => location.reload();
+menuExitBtn.onclick = () => goToParentMenu();
 exitBtnEl.onclick = () => {
   if (!running) return;
   const wasPaused = paused;
   if (!wasPaused) pauseGame();
   const sure = confirm('Bạn có chắc muốn thoát về menu? Điểm số hiện tại sẽ mất.');
   if (sure){
-    location.reload();
+    goToParentMenu();
   } else if (!wasPaused){
     resumeGame();
   }
@@ -669,8 +698,11 @@ function gameOver(){
     <h1>💥 TRÁI ĐẤT GẶP NGUY!</h1>
     <p>Bạn đạt được <b style="color:#ffe066">${score}</b> điểm ở Level ${level}.<br>Combo cao nhất: <b style="color:#ff9f4d">x${maxCombo}</b></p>
     <button class="big" id="retryBtn">🔄 Chơi Lại</button>
+    ${embeddedInParent ? '<button class="big" id="homeBtn" style="background:linear-gradient(135deg,#2b8a4f,#4dbf7f);margin-top:2px;">🏠 Về Rừng Cửu Chương</button>' : ''}
   `;
   document.getElementById('retryBtn').onclick = () => location.reload();
+  const homeBtnEl = document.getElementById('homeBtn');
+  if (homeBtnEl) homeBtnEl.onclick = () => goToParentMenu();
 }
 
 // ---- Draw ----
@@ -817,6 +849,12 @@ startBtn.onclick = () => {
   running = true;
   spawnWave();
 };
+
+const homeBtnStartEl = document.getElementById('homeBtnStart');
+if (embeddedInParent && homeBtnStartEl){
+  homeBtnStartEl.style.display = 'inline-block';
+  homeBtnStartEl.onclick = () => goToParentMenu();
+}
 
 initState();
 draw();
