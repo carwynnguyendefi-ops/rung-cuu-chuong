@@ -447,6 +447,8 @@ function initState(){
   particles = [];
   popups = [];
   keys = {};
+  pendingShot = false;
+  touchMoved = false;
   running = false;
   paused = false;
   lives = 3;
@@ -528,6 +530,13 @@ document.addEventListener('keydown', e=>{
 });
 document.addEventListener('keyup', e=> keys[e.code]=false);
 
+// pendingShot: đạn sẽ chỉ thực sự bắn ra khi tàu đã di chuyển tới đúng vị trí đích
+// (tránh lỗi bắn ngay lúc vừa chạm, trước khi tàu kịp xoay/chạy sang hướng mới)
+let pendingShot = false;
+let touchStartX = 0;
+let touchMoved = false;
+const TOUCH_MOVE_THRESHOLD = 6; // px trên canvas: quá ngưỡng này coi là "kéo" chứ không phải "chạm"
+
 canvas.addEventListener('touchstart', e=>{
   e.preventDefault();
   if (!running || paused) return;
@@ -535,13 +544,28 @@ canvas.addEventListener('touchstart', e=>{
   const rect = canvas.getBoundingClientRect();
   const tx = (e.touches[0].clientX - rect.left) * (W/rect.width);
   ship.targetX = tx;
-  shoot();
+  touchStartX = tx;
+  touchMoved = false;
+  pendingShot = true; // chờ tàu chạy tới vị trí chạm rồi mới bắn
 }, {passive:false});
 canvas.addEventListener('touchmove', e=>{
   e.preventDefault();
   if (!running || paused) return;
   const rect = canvas.getBoundingClientRect();
-  ship.targetX = (e.touches[0].clientX - rect.left) * (W/rect.width);
+  const tx = (e.touches[0].clientX - rect.left) * (W/rect.width);
+  ship.targetX = tx;
+  if (Math.abs(tx - touchStartX) > TOUCH_MOVE_THRESHOLD){
+    touchMoved = true;
+    pendingShot = false; // đang kéo tàu đi, chưa bắn vội
+  }
+}, {passive:false});
+canvas.addEventListener('touchend', e=>{
+  if (!running || paused) return;
+  if (touchMoved){
+    // vừa kéo xong và thả tay: đợi tàu ổn định ở vị trí thả rồi mới bắn 1 phát
+    pendingShot = true;
+  }
+  touchMoved = false;
 }, {passive:false});
 canvas.addEventListener('mousedown', e=>{
   ensureAudio();
@@ -562,6 +586,11 @@ function update(){
     ship.x += dx*0.25;
   }
   ship.x = Math.max(ship.w/2+4, Math.min(W-ship.w/2-4, ship.x));
+
+  if (pendingShot && ship.targetX !== undefined && Math.abs(ship.targetX - ship.x) < 2){
+    pendingShot = false;
+    shoot();
+  }
 
   if (Math.random()<0.6) spawnShipTrail();
 
