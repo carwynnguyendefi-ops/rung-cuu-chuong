@@ -277,7 +277,6 @@ function buildHint(table, multiplier, correct) {
   return `${table} × ${multiplier} nghĩa là có ${table} nhóm, mỗi nhóm ${multiplier} ô. Gộp lại được tất cả ${correct} ô vuông!`;
 }
 
-/* ==================== Lưu trữ tiến độ & Ôn tập thông minh ==================== */
 const STORAGE_KEY = "cuuChuong_progress_v1";
 function loadProgress() {
   try {
@@ -333,7 +332,7 @@ function factAccuracy(f) {
   return (f.seen - f.wrong) / f.seen;
 }
 function weaknessScore(f) {
-  if (!f) return 6; // chưa từng gặp -> ưu tiên trung bình để bé được ôn đủ mọi phép tính
+  if (!f) return 6;
   const acc = factAccuracy(f);
   let score = (1 - acc) * 12;
   if (f.avgMs > 5000) score += 3;
@@ -625,7 +624,7 @@ function MultiplicationForest() {
   const [answered, setAnswered] = useState(false);
   const [score, setScore] = useState(0);
   const [muted, setMuted] = useState(false);
-  const [answerMode, setAnswerMode] = useState("choice"); // "choice" (trắc nghiệm) | "input" (tự luận)
+  const [answerMode, setAnswerMode] = useState("choice");
   const [typedAnswer, setTypedAnswer] = useState("");
   const [swipeDeck, setSwipeDeck] = useState([]);
   const [swipeIndex, setSwipeIndex] = useState(0);
@@ -647,7 +646,6 @@ function MultiplicationForest() {
   const theme = THEME[tableKey];
   const q = questions[index];
 
-  // Theo dõi thời gian chơi để hiển thị cho phụ huynh
   useEffect(() => {
     const iv = setInterval(() => {
       if (document.visibilityState === "visible") {
@@ -952,7 +950,7 @@ function MultiplicationForest() {
     }, "Bảng ", k), /*#__PURE__*/React.createElement("span", {
       className: "text-xs font-bold opacity-70"
     }, THEME[k].name));
-  }))), /*#__PURE__*/React.createElement("button", {
+  })), /*#__PURE__*/React.createElement("button", {
     onClick: () => startSwipe("all"),
     className: "card-btn w-full mt-4 rounded-3xl p-5 shadow-lg flex items-center gap-4 text-left text-white relative overflow-hidden",
     style: {
@@ -1520,7 +1518,7 @@ function MultiplicationForest() {
       border: "2px solid #E85A4A",
       color: "#E85A4A"
     }
-  }, "🗑️ Xoá toàn bộ tiến độ")));
+  }, "🗑️ Xoá toàn bộ tiến độ"))));
 }
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(/*#__PURE__*/React.createElement(MultiplicationForest, null));
