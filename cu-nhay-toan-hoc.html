@@ -12,16 +12,20 @@
     50% { transform:translate(4px,-2px); }
     75% { transform:translate(-3px,-3px); }
   }
+  html { height:100%; }
   body {
     background:#eafff0;
     font-family:'Segoe UI', Arial, sans-serif;
     display:flex; flex-direction:column; align-items:center;
     color:#1c3d2e;
-    min-height:100vh;
-    overflow:hidden;
+    min-height:100%;
+    width:100%;
+    overflow-x:hidden;
+    overflow-y:auto;
     user-select:none;
+    padding:8px 10px 12px;
   }
-  #wrap { position:relative; margin-top:10px; }
+  #wrap { position:relative; margin-top:8px; width:100%; max-width:420px; }
   canvas {
     background:linear-gradient(180deg,#bdeeff 0%, #e5fbdc 55%, #cdeecb 100%);
     border:3px solid #3aaf6b;
@@ -29,21 +33,26 @@
     box-shadow:0 6px 24px rgba(40,120,70,0.25);
     display:block;
     touch-action:none;
+    width:100%;
+    height:auto;
+    max-width:420px;
   }
   canvas.shake { animation: shake 0.25s; }
   #hud {
-    width:420px;
+    width:100%; max-width:420px;
     display:flex; justify-content:space-between; gap:4px;
     padding:6px 2px; font-size:13px; font-weight:800;
+    box-sizing:border-box;
   }
   #hud .box {
     background:#ffffffcc;
     border:2px solid #3aaf6b;
-    border-radius:10px; padding:3px 7px; color:#1c3d2e; white-space:nowrap;
+    border-radius:10px; padding:3px 6px; color:#1c3d2e; white-space:nowrap;
+    font-size:clamp(11px,3.2vw,13px);
   }
   #lives.hit { animation: shake 0.3s; color:#e14848; }
   #problem {
-    font-size:32px; font-weight:900; text-align:center;
+    font-size:clamp(22px,7vw,32px); font-weight:900; text-align:center;
     color:#1c3d2e;
     margin:2px 0 4px 0; height:42px;
     text-shadow:0 2px 0 rgba(255,255,255,0.7);
@@ -63,12 +72,13 @@
     35% { transform:translate(-50%,-50%) scale(1); }
     100% { opacity:0; transform:translate(-50%,-60%) scale(1.05); }
   }
-  #laneRow { display:flex; gap:10px; margin-top:10px; width:420px; }
+  #laneRow { display:flex; gap:8px; margin-top:10px; width:100%; max-width:420px; box-sizing:border-box; }
   .laneBtn {
-    flex:1; padding:14px 6px; border-radius:16px;
+    flex:1; min-width:0; padding:14px 4px; border-radius:16px;
     border:3px solid #3aaf6b; background:#ffffffdd;
-    font-weight:900; font-size:22px; color:#1c3d2e; cursor:pointer;
+    font-weight:900; font-size:clamp(14px,4.5vw,22px); color:#1c3d2e; cursor:pointer;
     transition:transform 0.08s;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .laneBtn:active { transform:scale(0.93); }
   .laneBtn.current { background:#3aaf6b; color:#fff; box-shadow:0 0 12px rgba(58,175,107,0.7); }
