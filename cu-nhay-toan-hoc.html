@@ -26,7 +26,7 @@
     padding:8px 10px 12px;
   }
   #wrap { position:relative; margin-top:8px; width:100%; max-width:420px; }
-  canvas {
+  #game {
     background:linear-gradient(180deg,#bdeeff 0%, #e5fbdc 55%, #cdeecb 100%);
     border:3px solid #3aaf6b;
     border-radius:14px;
@@ -37,7 +37,7 @@
     height:auto;
     max-width:420px;
   }
-  canvas.shake { animation: shake 0.25s; }
+  #game.shake { animation: shake 0.25s; }
   #hud {
     width:100%; max-width:420px;
     display:flex; justify-content:space-between; gap:4px;
@@ -148,13 +148,13 @@
   .medalDesc { font-size:10px; color:#5c8a6f; }
   .skinsGrid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
   .skinCard {
-    text-align:center; padding:8px; border-radius:14px; border:2px solid #ccc;
+    text-align:center; padding:6px; border-radius:12px; border:2px solid #ccc;
     background:#fafafa; cursor:pointer; transition:transform 0.1s;
   }
   .skinCard:active { transform:scale(0.96); }
   .skinCard.equipped { border-color:#3aaf6b; background:#eafff0; box-shadow:0 0 10px rgba(58,175,107,0.5); }
   .skinCard.locked { opacity:0.6; filter:grayscale(45%); }
-  .skinPreview { display:block; margin:0 auto; }
+  .skinPreview { display:block; margin:0 auto; width:56px; height:56px; max-width:56px; }
   .skinName { font-size:12px; font-weight:800; margin-top:4px; color:#1c3d2e; }
   .skinStatus { font-size:10.5px; color:#5c8a6f; margin-top:2px; }
 </style>
