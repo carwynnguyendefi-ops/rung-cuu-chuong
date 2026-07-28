@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Cú Nhảy Toán Học</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.08);} }
+  @keyframes shake {
+    0%,100% { transform:translate(0,0); }
+    25% { transform:translate(-4px,2px); }
+    50% { transform:translate(4px,-2px); }
+    75% { transform:translate(-3px,-3px); }
+  }
+  body {
+    background:#eafff0;
+    font-family:'Segoe UI', Arial, sans-serif;
+    display:flex; flex-direction:column; align-items:center;
+    color:#1c3d2e;
+    min-height:100vh;
+    overflow:hidden;
+    user-select:none;
+  }
+  #wrap { position:relative; margin-top:10px; }
+  canvas {
+    background:linear-gradient(180deg,#bdeeff 0%, #e5fbdc 55%, #cdeecb 100%);
+    border:3px solid #3aaf6b;
+    border-radius:14px;
+    box-shadow:0 6px 24px rgba(40,120,70,0.25);
+    display:block;
+    touch-action:none;
+  }
+  canvas.shake { animation: shake 0.25s; }
+  #hud {
+    width:420px;
+    display:flex; justify-content:space-between; gap:4px;
+    padding:6px 2px; font-size:13px; font-weight:800;
+  }
+  #hud .box {
+    background:#ffffffcc;
+    border:2px solid #3aaf6b;
+    border-radius:10px; padding:3px 7px; color:#1c3d2e; white-space:nowrap;
+  }
+  #lives.hit { animation: shake 0.3s; color:#e14848; }
+  #problem {
+    font-size:32px; font-weight:900; text-align:center;
+    color:#1c3d2e;
+    margin:2px 0 4px 0; height:42px;
+    text-shadow:0 2px 0 rgba(255,255,255,0.7);
+  }
+  #problem.pop { animation: pulse 0.3s ease; }
+  #feedback {
+    position:absolute; top:34%; left:50%;
+    transform:translate(-50%,-50%);
+    font-size:2.1rem; font-weight:900;
+    pointer-events:none; opacity:0; z-index:5;
+    white-space:nowrap;
+  }
+  #feedback.show { animation: feedbackPop 0.6s ease forwards; }
+  @keyframes feedbackPop {
+    0% { opacity:0; transform:translate(-50%,-50%) scale(0.5); }
+    20% { opacity:1; transform:translate(-50%,-50%) scale(1.15); }
+    35% { transform:translate(-50%,-50%) scale(1); }
+    100% { opacity:0; transform:translate(-50%,-60%) scale(1.05); }
+  }
+  #laneRow { display:flex; gap:10px; margin-top:10px; width:420px; }
+  .laneBtn {
+    flex:1; padding:14px 6px; border-radius:16px;
+    border:3px solid #3aaf6b; background:#ffffffdd;
+    font-weight:900; font-size:22px; color:#1c3d2e; cursor:pointer;
+    transition:transform 0.08s;
+  }
+  .laneBtn:active { transform:scale(0.93); }
+  .laneBtn.current { background:#3aaf6b; color:#fff; box-shadow:0 0 12px rgba(58,175,107,0.7); }
+  #overlay {
+    position:absolute; inset:0;
+    background:rgba(255,255,255,0.96);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; border-radius:12px; gap:14px; padding:20px;
+  }
+  #overlay h1 { color:#237a4a; font-size:26px; animation:pulse 2.2s ease-in-out infinite; }
+  #overlay p { max-width:380px; line-height:1.5; font-size:14px; color:#2f5c44; }
+  .tablesRow { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:400px; }
+  .tableBtn {
+    padding:6px 12px; border-radius:20px; border:2px solid #3aaf6b;
+    background:#fff; color:#237a4a; cursor:pointer; font-weight:700; font-size:14px;
+  }
+  .tableBtn.active { background:#3aaf6b; color:#fff; }
+  button.big {
+    padding:12px 30px; font-size:17px; font-weight:800; border-radius:30px;
+    border:none; cursor:pointer;
+    background:linear-gradient(135deg,#3aaf6b,#7fd858);
+    color:#fff; box-shadow:0 4px 14px rgba(58,175,107,0.5);
+  }
+  button.big:active { transform:scale(0.97); }
+  #hint { font-size:12px; color:#5c8a6f; margin-top:2px; }
+  #soundToggle {
+    position:absolute; top:8px; right:10px;
+    background:#ffffffcc; border:2px solid #3aaf6b;
+    border-radius:50%; width:32px; height:32px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:15px; z-index:6;
+  }
+  #invToggle {
+    position:absolute; top:8px; left:10px;
+    background:#ffffffcc; border:2px solid #3aaf6b;
+    border-radius:50%; width:32px; height:32px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:15px; z-index:6;
+  }
+  .modalOverlay {
+    position:fixed; inset:0; z-index:50;
+    background:rgba(20,40,25,0.55);
+    display:flex; align-items:center; justify-content:center;
+    padding:16px;
+  }
+  .modalBox {
+    background:#fff; border:3px solid #3aaf6b; border-radius:18px;
+    padding:16px 18px; width:min(94vw,460px); max-height:85vh; overflow-y:auto;
+    box-shadow:0 10px 40px rgba(0,0,0,0.35);
+  }
+  .modalHeader { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .modalHeader h2 { font-size:18px; color:#237a4a; }
+  .closeBtn {
+    cursor:pointer; font-size:16px; font-weight:900; color:#5c8a6f;
+    width:28px; height:28px; min-width:28px; display:flex; align-items:center; justify-content:center;
+    border-radius:50%; background:#eafff0;
+  }
+  .carrotBar {
+    font-size:16px; font-weight:800; color:#e08a1e; margin:6px 0 12px;
+    text-align:center; background:#fff6e0; border-radius:10px; padding:6px;
+  }
+  .modalBox h3 { font-size:14px; color:#237a4a; margin:10px 0 6px; }
+  .medalsGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:6px; }
+  .medalCard { text-align:center; padding:8px 4px; border-radius:12px; border:2px solid #ddd; background:#f7f7f7; }
+  .medalCard.owned { border-color:#ffb703; background:#fff8e6; }
+  .medalCard.locked { opacity:0.5; filter:grayscale(60%); }
+  .medalIcon { font-size:26px; }
+  .medalName { font-size:11px; font-weight:800; color:#1c3d2e; margin-top:2px; }
+  .medalDesc { font-size:10px; color:#5c8a6f; }
+  .skinsGrid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+  .skinCard {
+    text-align:center; padding:8px; border-radius:14px; border:2px solid #ccc;
+    background:#fafafa; cursor:pointer; transition:transform 0.1s;
+  }
+  .skinCard:active { transform:scale(0.96); }
+  .skinCard.equipped { border-color:#3aaf6b; background:#eafff0; box-shadow:0 0 10px rgba(58,175,107,0.5); }
+  .skinCard.locked { opacity:0.6; filter:grayscale(45%); }
+  .skinPreview { display:block; margin:0 auto; }
+  .skinName { font-size:12px; font-weight:800; margin-top:4px; color:#1c3d2e; }
+  .skinStatus { font-size:10.5px; color:#5c8a6f; margin-top:2px; }
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div class="box">❤️ <span id="lives">3</span></div>
+  <div class="box">⭐ <span id="score">0</span></div>
+  <div class="box">🥕 <span id="carrotsHud">0</span></div>
+  <div class="box">🏃 Lv.<span id="level">1</span></div>
+</div>
+<div id="problem">6 × 7 = ?</div>
+
+<div id="wrap">
+  <canvas id="game" width="420" height="480"></canvas>
+  <div id="feedback"></div>
+  <div id="soundToggle">🔊</div>
+  <div id="invToggle" title="Bộ sưu tập">🎒</div>
+  <div id="overlay">
+    <h1>🐇 CÚ NHẢY TOÁN HỌC</h1>
+    <p>Có 3 làn đường, mỗi làn mang một đáp án. Đọc phép tính rồi <b>nhảy sang đúng làn có đáp án đúng</b> trước khi vạch kẻ chạm tới bạn nhé!</p>
+    <div>
+      <p style="margin-bottom:6px;font-weight:700;color:#237a4a;">Chọn bảng cửu chương muốn luyện:</p>
+      <div class="tablesRow" id="tableSelect"></div>
+    </div>
+    <button class="big" id="startBtn">🏃 Bắt Đầu</button>
+    <p id="hint">Chạm nút làn bên dưới hoặc dùng phím ← → để đổi làn.</p>
+    <p style="font-size:11px;color:#5c8a6f;">🎒 Nhấn biểu tượng ba lô để xem huy chương &amp; trang phục của Thỏ!</p>
+  </div>
+</div>
+<div id="laneRow">
+  <div class="laneBtn" id="lane0">◀ Trái</div>
+  <div class="laneBtn" id="lane1">Giữa</div>
+  <div class="laneBtn" id="lane2">Phải ▶</div>
+</div>
+
+<div id="invModal" class="modalOverlay" style="display:none;">
+  <div class="modalBox">
+    <div class="modalHeader">
+      <h2>🎒 Bộ Sưu Tập của Thỏ</h2>
+      <div id="invClose" class="closeBtn">✕</div>
+    </div>
+    <div class="carrotBar">🥕 Cà rốt hiện có: <span id="invCarrotCount">0</span></div>
+    <h3>🏅 Huy chương</h3>
+    <div id="medalsGrid" class="medalsGrid"></div>
+    <h3>🎨 Trang phục (Skin)</h3>
+    <div id="skinsGrid" class="skinsGrid"></div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+const livesEl = document.getElementById('lives');
+const scoreEl = document.getElementById('score');
+const levelEl = document.getElementById('level');
+const problemEl = document.getElementById('problem');
+const overlay = document.getElementById('overlay');
+const startBtn = document.getElementById('startBtn');
+const tableSelect = document.getElementById('tableSelect');
+const feedbackEl = document.getElementById('feedback');
+const soundToggle = document.getElementById('soundToggle');
+const hintEl = document.getElementById('hint');
+const laneBtns = [document.getElementById('lane0'), document.getElementById('lane1'), document.getElementById('lane2')];
+const carrotsEl = document.getElementById('carrotsHud');
+const invToggle = document.getElementById('invToggle');
+const invModal = document.getElementById('invModal');
+const invClose = document.getElementById('invClose');
+const invCarrotCount = document.getElementById('invCarrotCount');
+const medalsGrid = document.getElementById('medalsGrid');
+const skinsGrid = document.getElementById('skinsGrid');
+
+// ---- Sound ----
+let audioCtx = null;
+let soundOn = true;
+soundToggle.onclick = () => { soundOn = !soundOn; soundToggle.textContent = soundOn ? '🔊' : '🔇'; };
+function ensureAudio(){ if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+function beep(freq, dur, type='sine', vol=0.15, delay=0){
+  if (!soundOn) return;
+  ensureAudio();
+  const t0 = audioCtx.currentTime + delay;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t0);
+  gain.gain.setValueAtTime(vol, t0);
+  gain.gain.exponentialRampToValueAtTime(0.001, t0+dur);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(t0); osc.stop(t0+dur);
+}
+function sfxHop(){ beep(500,0.05,'square',0.05); }
+function sfxCorrect(combo){ beep(523,0.09,'triangle',0.18); beep(784,0.12,'triangle',0.16,0.07); if(combo>=3) beep(1046,0.14,'triangle',0.14,0.14); }
+function sfxWrong(){ beep(140,0.25,'sawtooth',0.18); beep(90,0.3,'sawtooth',0.14,0.05); }
+function sfxLifeLost(){ beep(200,0.4,'sawtooth',0.2); }
+function sfxLevelUp(){ beep(440,0.1,'triangle',0.15); beep(660,0.1,'triangle',0.15,0.1); beep(880,0.16,'triangle',0.18,0.2); }
+function sfxGameOver(){ beep(300,0.3,'sawtooth',0.2); beep(200,0.3,'sawtooth',0.2,0.2); beep(100,0.5,'sawtooth',0.2,0.4); }
+
+// ---- Currency, medals & skins ----
+// Cà rốt (carrot) là đồng tiền thưởng, kiếm được khi trả lời đúng và lên cấp.
+// Huy chương là thành tích mở khóa vĩnh viễn, dùng làm điều kiện mở một số skin quý hiếm.
+// Tất cả tiến trình này lưu trong bộ nhớ của phiên chơi (mất khi tải lại trang).
+let carrots = 0;
+let carrotsThisGame = 0;
+let unlockedSkins = new Set(['default']);
+let equippedSkin = 'default';
+let unlockedMedals = new Set();
+
+const MEDALS = [
+  { id:'bronze', name:'Huy chương Đồng', icon:'🥉', desc:'Đạt Level 3', check: () => level>=3 },
+  { id:'silver', name:'Huy chương Bạc', icon:'🥈', desc:'Đạt Combo x8', check: () => maxCombo>=8 },
+  { id:'gold', name:'Huy chương Vàng', icon:'🏅', desc:'Đạt Level 6', check: () => level>=6 },
+];
+
+const SKINS = [
+  { id:'default', name:'Thỏ Trắng', icon:'🐇', cost:0, reqMedal:null,
+    bodyTop:'#ffffff', bodyBottom:'#f2e3d0', earOuter:'#ffffff', earInner:'#ffc9dc', tail:'#ffffff', leg:'#f2c9a0', stroke:'#c9a878' },
+  { id:'brown', name:'Thỏ Nâu', icon:'🐰', cost:15, reqMedal:null,
+    bodyTop:'#d9a066', bodyBottom:'#b97f45', earOuter:'#d9a066', earInner:'#f4c9a0', tail:'#e8c9a0', leg:'#a5723f', stroke:'#7a4a24' },
+  { id:'pink', name:'Thỏ Hồng', icon:'🐰', cost:30, reqMedal:null,
+    bodyTop:'#ffd6e8', bodyBottom:'#ffb3d1', earOuter:'#ffd6e8', earInner:'#ff8fb3', tail:'#ffe6f0', leg:'#f2a0c0', stroke:'#d1638f' },
+  { id:'silverfur', name:'Thỏ Bạc', icon:'🐨', cost:50, reqMedal:'bronze',
+    bodyTop:'#e8e8ec', bodyBottom:'#c3c3cc', earOuter:'#e8e8ec', earInner:'#b8c4e0', tail:'#f0f0f4', leg:'#a0a0ab', stroke:'#6b6b78' },
+  { id:'rainbow', name:'Thỏ Cầu Vồng', icon:'🌈', cost:80, reqMedal:'silver',
+    bodyTop:'#ffd166', bodyBottom:'#ef476f', earOuter:'#06d6a0', earInner:'#118ab2', tail:'#ffd166', leg:'#ef476f', stroke:'#073b4c' },
+  { id:'goldfur', name:'Thỏ Vàng Kim', icon:'🌟', cost:120, reqMedal:'gold',
+    bodyTop:'#fff3b0', bodyBottom:'#ffd700', earOuter:'#fff3b0', earInner:'#ffb700', tail:'#fff9db', leg:'#e6b800', stroke:'#a3790c' },
+];
+
+function curSkin(){ return SKINS.find(s=>s.id===equippedSkin) || SKINS[0]; }
+
+function updateCarrotHud(){ carrotsEl.textContent = carrots; }
+
+function awardCarrots(n){
+  carrots += n;
+  carrotsThisGame += n;
+  updateCarrotHud();
+}
+
+function checkMedals(){
+  MEDALS.forEach(m=>{
+    if (!unlockedMedals.has(m.id) && m.check()){
+      unlockedMedals.add(m.id);
+      awardCarrots(10);
+      showFeedback(m.icon + ' ' + m.name + '!', '#e08a1e');
+      spawnBurst(W/2, H*0.35, '255,183,3', 30, 1.3, 34);
+    }
+  });
+}
+
+function drawSkinPreview(cv, skin){
+  const c = cv.getContext('2d');
+  const w = cv.width, h = cv.height;
+  c.clearRect(0,0,w,h);
+  c.save();
+  c.translate(w/2, h/2+4);
+  [[-9,-1],[9,1]].forEach(([ex,dir])=>{
+    c.save();
+    c.translate(ex,-14);
+    c.rotate(dir*0.12);
+    c.fillStyle = skin.earOuter; c.strokeStyle = skin.stroke; c.lineWidth = 1.4;
+    c.beginPath(); c.ellipse(0,-8,4.6,12,0,0,Math.PI*2); c.fill(); c.stroke();
+    c.fillStyle = skin.earInner;
+    c.beginPath(); c.ellipse(0,-7,2.3,8,0,0,Math.PI*2); c.fill();
+    c.restore();
+  });
+  const grad = c.createLinearGradient(0,-14,0,14);
+  grad.addColorStop(0, skin.bodyTop); grad.addColorStop(1, skin.bodyBottom);
+  c.fillStyle = grad; c.strokeStyle = skin.stroke; c.lineWidth = 1.6;
+  c.beginPath(); c.ellipse(0,2,13,14,0,0,Math.PI*2); c.fill(); c.stroke();
+  c.fillStyle = '#2e2418';
+  c.beginPath(); c.arc(-4.5,-1,1.6,0,Math.PI*2); c.fill();
+  c.beginPath(); c.arc(4.5,-1,1.6,0,Math.PI*2); c.fill();
+  c.fillStyle = '#ff9fb3';
+  c.beginPath(); c.ellipse(-7,3,2.2,1.4,0,0,Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(7,3,2.2,1.4,0,0,Math.PI*2); c.fill();
+  c.fillStyle = '#e8869e';
+  c.beginPath(); c.moveTo(-1.4,1.6); c.lineTo(1.4,1.6); c.lineTo(0,3.6); c.closePath(); c.fill();
+  c.restore();
+}
+
+function trySelectSkin(skin){
+  if (unlockedSkins.has(skin.id)){
+    equippedSkin = skin.id;
+    renderInventory();
+    return;
+  }
+  const medalOk = !skin.reqMedal || unlockedMedals.has(skin.reqMedal);
+  if (medalOk && carrots >= skin.cost){
+    carrots -= skin.cost;
+    unlockedSkins.add(skin.id);
+    equippedSkin = skin.id;
+    updateCarrotHud();
+    renderInventory();
+  }
+}
+
+function renderInventory(){
+  invCarrotCount.textContent = carrots;
+
+  medalsGrid.innerHTML = '';
+  MEDALS.forEach(m=>{
+    const owned = unlockedMedals.has(m.id);
+    const div = document.createElement('div');
+    div.className = 'medalCard' + (owned ? ' owned' : ' locked');
+    div.innerHTML = `<div class="medalIcon">${m.icon}</div><div class="medalName">${m.name}</div><div class="medalDesc">${owned ? 'Đã đạt!' : m.desc}</div>`;
+    medalsGrid.appendChild(div);
+  });
+
+  skinsGrid.innerHTML = '';
+  SKINS.forEach(s=>{
+    const owned = unlockedSkins.has(s.id);
+    const equipped = equippedSkin === s.id;
+    const medalOk = !s.reqMedal || unlockedMedals.has(s.reqMedal);
+    const card = document.createElement('div');
+    card.className = 'skinCard' + (equipped ? ' equipped' : '') + (!owned && !medalOk ? ' locked' : '');
+    const cv = document.createElement('canvas');
+    cv.width = 64; cv.height = 64; cv.className = 'skinPreview';
+    card.appendChild(cv);
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'skinName';
+    nameDiv.textContent = s.icon + ' ' + s.name;
+    card.appendChild(nameDiv);
+    const statusDiv = document.createElement('div');
+    statusDiv.className = 'skinStatus';
+    if (equipped) statusDiv.textContent = '✅ Đang mặc';
+    else if (owned) statusDiv.textContent = 'Nhấn để mặc';
+    else if (!medalOk) statusDiv.textContent = '🔒 Cần ' + MEDALS.find(m=>m.id===s.reqMedal).name;
+    else statusDiv.textContent = (carrots >= s.cost ? '🔓 ' : '🔒 ') + 'Mở khóa: ' + s.cost + ' 🥕';
+    card.appendChild(statusDiv);
+    card.onclick = () => trySelectSkin(s);
+    skinsGrid.appendChild(card);
+    drawSkinPreview(cv, s);
+  });
+}
+
+let wasRunningBeforeInv = false;
+function openInventory(){
+  wasRunningBeforeInv = running;
+  running = false;
+  renderInventory();
+  invModal.style.display = 'flex';
+}
+function closeInventory(){
+  invModal.style.display = 'none';
+  if (wasRunningBeforeInv) running = true;
+}
+invToggle.onclick = openInventory;
+invClose.onclick = closeInventory;
+invModal.addEventListener('click', e=>{ if (e.target === invModal) closeInventory(); });
+
+// ---- Table selection ----
+let selectedTables = new Set();
+for (let t=1; t<=10; t++){
+  const b = document.createElement('div');
+  b.className = 'tableBtn';
+  b.textContent = 'Bảng ' + t;
+  b.dataset.t = t;
+  b.onclick = () => {
+    if (selectedTables.has(t)) { selectedTables.delete(t); b.classList.remove('active'); }
+    else { selectedTables.add(t); b.classList.add('active'); }
+    hintEl.style.color = '';
+  };
+  tableSelect.appendChild(b);
+}
+
+// ---- Game state ----
+const LANE_X = [W*0.2, W*0.5, W*0.8];
+const CHAR_Y = H - 70;
+const START_SPEED = 1.0;
+const SPEED_INCREMENT = 0.2;
+const MAX_SPEED = 2.4;
+let currentLane = 1;
+let running = false;
+let lives, score, level, combo, maxCombo, speed, currentProblem;
+let strip = null; // {y, options:[{val,lane,correct}], resolved}
+let particles = [], popups = [];
+let shakeTimer = 0;
+let bounce = 0;
+let squash = 1;
+let waitTimer = 0;
+let runPhase = 0;
+let hurtTimer = 0;
+
+let clouds = [];
+for (let i=0;i<5;i++) clouds.push({ x:Math.random()*W, y:20+Math.random()*90, s:0.15+Math.random()*0.2, scale:0.6+Math.random()*0.8 });
+
+let deco = [];
+for (let i=0;i<16;i++) deco.push({ x:Math.random()*W, y:Math.random()*H, s:1.2+Math.random()*1.4, kind: Math.random()<0.5?'tuft':'flower' });
+
+let animPhase = null; // null | 'jump' | 'wolf'
+let animTimer = 0;
+let animTotal = 0;
+let wolfLane = 1;
+let nextWaitTimer = 20;
+function lerp(a,b,t){ return a + (b-a)*t; }
+
+function initState(){
+  currentLane = 1;
+  running = false;
+  lives = 3; score = 0; level = 1; combo = 0; maxCombo = 0;
+  speed = START_SPEED;
+  carrotsThisGame = 0;
+  particles = []; popups = [];
+  runPhase = 0; hurtTimer = 0; squash = 1; bounce = 0;
+  animPhase = null; animTimer = 0; animTotal = 0;
+  livesEl.textContent = lives; scoreEl.textContent = score; levelEl.textContent = level;
+  updateLaneButtons();
+}
+
+function updateLaneButtons(){
+  laneBtns.forEach((b,i)=> b.classList.toggle('current', i===currentLane));
+}
+
+function setLane(i){
+  if (!running || animPhase) return;
+  currentLane = i;
+  updateLaneButtons();
+  sfxHop();
+}
+laneBtns.forEach((b,i)=> b.onclick = () => setLane(i));
+document.addEventListener('keydown', e=>{
+  if (!running) return;
+  if (e.code==='ArrowLeft') setLane(Math.max(0,currentLane-1));
+  if (e.code==='ArrowRight') setLane(Math.min(2,currentLane+1));
+});
+canvas.addEventListener('touchstart', e=>{
+  e.preventDefault();
+  ensureAudio();
+  const rect = canvas.getBoundingClientRect();
+  const tx = (e.touches[0].clientX - rect.left) * (W/rect.width);
+  const lane = tx < W/3 ? 0 : (tx < 2*W/3 ? 1 : 2);
+  setLane(lane);
+}, {passive:false});
+canvas.addEventListener('mousedown', e=>{
+  ensureAudio();
+  const rect = canvas.getBoundingClientRect();
+  const tx = (e.clientX - rect.left) * (W/rect.width);
+  const lane = tx < W/3 ? 0 : (tx < 2*W/3 ? 1 : 2);
+  setLane(lane);
+});
+
+function newProblem(){
+  const arr = Array.from(selectedTables);
+  const t = arr[Math.floor(Math.random()*arr.length)];
+  const m = 1 + Math.floor(Math.random()*10);
+  currentProblem = { t, m, answer: t*m };
+  problemEl.textContent = `${t} × ${m} = ?`;
+  problemEl.classList.remove('pop'); void problemEl.offsetWidth; problemEl.classList.add('pop');
+}
+
+function spawnStrip(){
+  const correct = currentProblem.answer;
+  const vals = new Set([correct]);
+  while (vals.size < 3){
+    const off = (Math.floor(Math.random()*8)-4) || 2;
+    let d = correct + off;
+    d = Math.max(1, d);
+    vals.add(d);
+  }
+  const arr = Array.from(vals);
+  for (let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+  strip = {
+    y: -40,
+    options: arr.map((v,i)=>({ val:v, lane:i, correct: v===correct })),
+    resolved: false
+  };
+}
+
+function spawnBurst(x,y,color,count=16,speedMul=1,life=30){
+  for (let i=0;i<count;i++){
+    const ang = Math.random()*Math.PI*2;
+    const spd = (1+Math.random()*3)*speedMul;
+    particles.push({x,y,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,life:life+Math.random()*12,maxLife:life+12,r:2+Math.random()*3,color});
+  }
+}
+function spawnPopup(x,y,text,color){ popups.push({x,y,text,color,life:40,maxLife:40}); }
+
+function spawnDust(){
+  const x = LANE_X[currentLane] + (Math.random()-0.5)*20;
+  const y = CHAR_Y + 22 + Math.random()*4;
+  particles.push({
+    x, y,
+    vx:(Math.random()-0.5)*0.8 - 0.3,
+    vy:-0.3-Math.random()*0.4,
+    life:16+Math.random()*8, maxLife:24,
+    r:2+Math.random()*2.5,
+    color:'120,100,70'
+  });
+}
+
+function showFeedback(text, color){
+  feedbackEl.textContent = text;
+  feedbackEl.style.color = color;
+  feedbackEl.classList.remove('show');
+  void feedbackEl.offsetWidth;
+  feedbackEl.classList.add('show');
+}
+
+function triggerShake(){ shakeTimer = 12; }
+
+function pickPraise(){
+  const arr = ['TUYỆT VỜI!','CHÍNH XÁC!','XUẤT SẮC!','QUÁ ĐỈNH!','NHANH THẬT!'];
+  return arr[Math.floor(Math.random()*arr.length)];
+}
+
+function resolveStrip(){
+  const opt = strip.options.find(o=>o.lane===currentLane);
+  const cx = LANE_X[currentLane], cy = CHAR_Y;
+  if (opt.correct){
+    combo++; maxCombo = Math.max(maxCombo, combo);
+    const mult = 1 + Math.min(combo-1,5)*0.2;
+    const gained = Math.round(10*level*mult);
+    score += gained; scoreEl.textContent = score;
+    awardCarrots(1 + Math.floor(combo/4));
+    spawnPopup(cx, cy-30, '+'+gained, '#ffb703');
+    spawnBurst(cx, cy-10, '255,183,3', 24, 1.2, 30);
+    spawnBurst(cx, cy-10, '120,220,180', 12, 0.7, 26);
+    sfxCorrect(combo);
+    showFeedback(pickPraise(), '#2f9e57');
+    levelUpCheck();
+    animPhase = 'jump';
+    animTimer = 0;
+    animTotal = 44;
+    nextWaitTimer = 20;
+  } else {
+    combo = 0;
+    speed = START_SPEED;
+    sfxWrong();
+    showFeedback('SAI RỒI!', '#e14848');
+    triggerShake();
+    loseLife();
+    animPhase = 'wolf';
+    animTimer = 0;
+    animTotal = WOLF_TOTAL;
+    wolfLane = currentLane;
+    nextWaitTimer = 48;
+  }
+}
+
+function finishResolve(){
+  animPhase = null;
+  strip = null;
+  waitTimer = nextWaitTimer;
+}
+
+function loseLife(){
+  lives--; livesEl.textContent = lives;
+  livesEl.classList.remove('hit'); void livesEl.offsetWidth; livesEl.classList.add('hit');
+  sfxLifeLost();
+  if (lives<=0) gameOver();
+}
+
+function levelUpCheck(){
+  if (score >= level*100){
+    level++; levelEl.textContent = level;
+    speed = Math.min(MAX_SPEED, speed + SPEED_INCREMENT);
+    awardCarrots(5);
+    sfxLevelUp();
+    showFeedback('⭐ LÊN CẤP ' + level + '! ⭐', '#2f9e57');
+    spawnBurst(W/2, H/2, '58,175,107', 34, 1.4, 36);
+  }
+}
+
+function gameOver(){
+  running = false;
+  sfxGameOver();
+  overlay.style.display = 'flex';
+  overlay.innerHTML = `
+    <h1>💥 VẤP NGÃ RỒI!</h1>
+    <p>Bạn đạt được <b style="color:#2f9e57">${score}</b> điểm ở Level ${level}.<br>Combo cao nhất: <b style="color:#e08a1e">x${maxCombo}</b></p>
+    <p>🥕 Cà rốt kiếm được ván này: <b style="color:#e08a1e">+${carrotsThisGame}</b> (Tổng: ${carrots})</p>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+      <button class="big" id="retryBtn">🔄 Chơi Lại</button>
+      <button class="big" id="invBtnGameOver" style="background:linear-gradient(135deg,#ffb703,#ff8c42);">🎒 Bộ Sưu Tập</button>
+    </div>
+  `;
+  document.getElementById('retryBtn').onclick = () => {
+    overlay.style.display = 'none';
+    initState();
+    running = true;
+    newProblem();
+    spawnStrip();
+  };
+  document.getElementById('invBtnGameOver').onclick = openInventory;
+}
+
+// ---- Update / Draw ----
+function update(){
+  if (bounce>0) bounce--;
+  if (squash !== 1){
+    squash += (1 - squash) * 0.22;
+    if (Math.abs(squash - 1) < 0.01) squash = 1;
+  }
+  if (hurtTimer>0) hurtTimer--;
+
+  // Freeze the world for the whole wolf sequence — no running animation, no
+  // dust, no scrolling — since gameplay is essentially paused for a cutscene.
+  const wolfActive = animPhase === 'wolf';
+
+  runPhase += (running && !wolfActive ? (0.14 + speed*0.05) : 0);
+
+  if (!wolfActive && Math.random() < 0.55) spawnDust();
+
+  if (!wolfActive){
+    clouds.forEach(c=>{
+      c.x += c.s;
+      if (c.x - 40*c.scale > W) { c.x = -40*c.scale; c.y = 20+Math.random()*90; }
+    });
+    deco.forEach(d=>{
+      d.y += speed*0.6;
+      if (d.y > H+10) { d.y = -10; d.x = Math.random()*W; }
+    });
+  }
+
+  if (animPhase){
+    animTimer++;
+    if (animPhase === 'wolf' && animTimer === WOLF_LUNGE_END){
+      const cx = LANE_X[currentLane];
+      spawnBurst(cx, CHAR_Y-6, '255,190,110', 10, 0.7, 20);
+      spawnBurst(cx, CHAR_Y-14, '255,255,255', 6, 0.5, 16);
+    }
+    if (animPhase === 'jump' && animTimer === Math.round(animTotal*0.85)){
+      const cx = LANE_X[currentLane];
+      spawnBurst(cx, CHAR_Y+18, '120,100,70', 14, 1.1, 22);
+      squash = 0.62;
+    }
+    if (animTimer >= animTotal) finishResolve();
+  } else if (waitTimer>0){
+    waitTimer--;
+    if (waitTimer===0){ newProblem(); spawnStrip(); }
+  } else if (strip && !strip.resolved){
+    strip.y += speed;
+    if (strip.y >= CHAR_Y - 10){
+      strip.resolved = true;
+      resolveStrip();
+    }
+  }
+  for (let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.x+=p.vx; p.y+=p.vy; p.vx*=0.96; p.vy*=0.96; p.life--;
+    if (p.life<=0) particles.splice(i,1);
+  }
+  for (let i=popups.length-1;i>=0;i--){
+    const p = popups[i]; p.y -= 0.7; p.life--;
+    if (p.life<=0) popups.splice(i,1);
+  }
+  if (shakeTimer>0){ shakeTimer--; canvas.classList.add('shake'); }
+  else canvas.classList.remove('shake');
+  checkMedals();
+}
+
+function drawLanes(){
+  ctx.strokeStyle = 'rgba(60,120,90,0.35)';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([14,10]);
+  [W/3, 2*W/3].forEach(x=>{
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+  });
+  ctx.setLineDash([]);
+}
+
+function drawClouds(){
+  clouds.forEach(c=>{
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = '#ffffff';
+    ctx.translate(c.x, c.y);
+    ctx.scale(c.scale, c.scale);
+    ctx.beginPath();
+    ctx.ellipse(0,0,26,14,0,0,Math.PI*2);
+    ctx.ellipse(-18,4,18,11,0,0,Math.PI*2);
+    ctx.ellipse(18,4,20,12,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+function drawDeco(){
+  deco.forEach(d=>{
+    ctx.save();
+    ctx.translate(d.x, d.y);
+    ctx.scale(d.s, d.s);
+    if (d.kind === 'tuft'){
+      ctx.strokeStyle = 'rgba(46,120,80,0.35)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-4,6); ctx.quadraticCurveTo(-6,-4,-1,-8); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,6); ctx.quadraticCurveTo(0,-6,0,-10); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(4,6); ctx.quadraticCurveTo(6,-4,1,-8); ctx.stroke();
+    } else {
+      ctx.fillStyle = 'rgba(255,180,210,0.55)';
+      for (let i=0;i<4;i++){
+        const ang = i*Math.PI/2;
+        ctx.beginPath();
+        ctx.ellipse(Math.cos(ang)*4, Math.sin(ang)*4, 3.4, 2.2, ang, 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(255,214,90,0.8)';
+      ctx.beginPath(); ctx.arc(0,0,2,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  });
+}
+
+// Shared timing curve for the wolf. Two parts:
+// 1) a brief on-field approach (peek out of the fence, lunge) — establishing shot.
+// 2) a dedicated full-screen CUTSCENE close-up (3s) that actually shows the catch,
+//    instead of just stacking two sprites on the game field.
+const WOLF_PEEK_END = 8;
+const WOLF_LUNGE_END = 20;
+const WOLF_CUTSCENE_END = WOLF_LUNGE_END + 180; // 180 frames ≈ 3s at 60fps
+const WOLF_RETREAT_END = WOLF_CUTSCENE_END + 16;
+const WOLF_TOTAL = WOLF_RETREAT_END + 4;
+
+function easeOutCubic(x){ return 1 - Math.pow(1-x, 3); }
+function easeInCubic(x){ return x*x*x; }
+
+function wolfPose(){
+  // Only meaningful for the on-field approach/retreat segments; during the
+  // cutscene itself the field sprites aren't drawn at all.
+  if (animPhase !== 'wolf') return { vis:0, grab:0, y:0 };
+  const f = animTimer;
+  const hideY = strip ? strip.y - 6 : CHAR_Y;
+  const peekY = hideY - 16;
+  const grabY = CHAR_Y - 20;
+  let vis, y, grab;
+  if (f < WOLF_PEEK_END){
+    const k = f / WOLF_PEEK_END; vis = k; y = lerp(hideY, peekY, k); grab = 0;
+  } else if (f < WOLF_LUNGE_END){
+    const k = (f - WOLF_PEEK_END) / (WOLF_LUNGE_END - WOLF_PEEK_END);
+    vis = 1; y = lerp(peekY, grabY, k); grab = k;
+  } else if (f < WOLF_CUTSCENE_END){
+    vis = 1; y = grabY; grab = 1; // held during the cutscene (field sprites hidden anyway)
+  } else if (f < WOLF_RETREAT_END){
+    const k = (f - WOLF_CUTSCENE_END) / (WOLF_RETREAT_END - WOLF_CUTSCENE_END);
+    vis = 1 - k*0.2; y = lerp(grabY, hideY, k); grab = 1 - k;
+  } else {
+    vis = 0; y = hideY; grab = 0;
+  }
+  return { vis, grab, y };
+}
+
+function drawChar(){
+  const skin = curSkin();
+  const x = LANE_X[currentLane];
+  const hop = Math.max(0, Math.sin(runPhase*2)) * 4 + bounce;
+
+  const jumpT = animPhase === 'jump' ? animTimer/animTotal : 0;
+  const jumpArc = jumpT>0 ? Math.sin(Math.PI*jumpT) * 58 : 0;
+  const jumpLean = jumpT>0 ? Math.sin(Math.PI*jumpT*2) * -0.22 : 0;
+  let depthScale = 1;
+  if (animPhase === 'jump'){
+    depthScale = jumpT<0.5 ? lerp(1, 0.78, jumpT/0.5) : lerp(0.78, 1.1, (jumpT-0.5)/0.5);
+  }
+
+  const grab = wolfPose().grab;
+
+  const y = CHAR_Y - hop - jumpArc + grab*4;
+  const sx = hurtTimer>0 ? 0.9 : (2 - squash);
+  const sy = hurtTimer>0 ? 1.1 : squash;
+  const tilt = (hurtTimer>0 ? Math.sin(hurtTimer*1.6)*0.22 : 0) + jumpLean;
+  const legSwing = animPhase ? 0 : Math.sin(runPhase*2.4) * 8;
+
+  // shadow (shrinks & fades while airborne over the fence)
+  ctx.save();
+  ctx.globalAlpha = 0.22 * (1 - Math.min(0.7, jumpArc/60));
+  ctx.fillStyle = '#1c3d2e';
+  ctx.beginPath();
+  ctx.ellipse(x, CHAR_Y + 24, 17 - hop*0.4 - jumpArc*0.15, 5, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(tilt);
+  ctx.scale(sx*depthScale, sy*depthScale);
+
+  // back legs (tucked up while jumping, running otherwise)
+  ctx.fillStyle = skin.leg;
+  const legTuck = jumpT>0 ? -6*Math.sin(Math.PI*jumpT) : 0;
+  ctx.beginPath();
+  ctx.ellipse(-9, 17 + Math.max(0,legSwing*0.3) + legTuck, 6, 5, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(9, 17 + Math.max(0,-legSwing*0.3) + legTuck, 6, 5, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // tail
+  ctx.fillStyle = skin.tail;
+  ctx.beginPath();
+  ctx.arc(-16, 6, 6, 0, Math.PI*2);
+  ctx.fill();
+
+  // body
+  const bodyGrad = ctx.createLinearGradient(0,-18,0,18);
+  bodyGrad.addColorStop(0, hurtTimer>0 ? '#ffdada' : skin.bodyTop);
+  bodyGrad.addColorStop(1, skin.bodyBottom);
+  ctx.fillStyle = bodyGrad;
+  ctx.strokeStyle = skin.stroke;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(0, 4, 16, 18, 0, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+
+  // ears (flop while running, stretch straight up when grabbed by the wolf)
+  const earA = Math.sin(runPhase*1.6) * 6;
+  const earStretch = grab * 16;
+  const earAngle = (1-grab) * 1;
+  [[-7,-1],[7,1]].forEach(([ex,dir])=>{
+    ctx.save();
+    ctx.translate(ex, -14);
+    ctx.rotate(((ex<0?-1:1)*0.12 + earA*0.02*dir) * earAngle);
+    ctx.fillStyle = skin.earOuter;
+    ctx.strokeStyle = skin.stroke;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(0,-14-earStretch*0.5,5,15+earStretch,0,0,Math.PI*2);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = skin.earInner;
+    ctx.beginPath();
+    ctx.ellipse(0,-13-earStretch*0.5,2.6,10+earStretch*0.7,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  });
+
+  // face
+  const blink = (Math.floor(runPhase*8) % 70 === 0);
+  const scared = grab > 0.3;
+  ctx.fillStyle = '#2e2418';
+  if (scared){
+    ctx.beginPath(); ctx.arc(-6,-3,2.8,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(6,-3,2.8,0,Math.PI*2); ctx.fill();
+  } else if (blink){
+    ctx.fillRect(-9,-3,5,1.6);
+    ctx.fillRect(4,-3,5,1.6);
+  } else {
+    ctx.beginPath(); ctx.arc(-6,-3,2.1,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(6,-3,2.1,0,Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle = '#ff9fb3';
+  ctx.beginPath(); ctx.ellipse(-10,4,3,2,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(10,4,3,2,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#e8869e';
+  if (scared){
+    ctx.beginPath(); ctx.ellipse(0,4,3,4,0,0,Math.PI*2); ctx.fill();
+  } else {
+    ctx.beginPath(); ctx.moveTo(-2,2); ctx.lineTo(2,2); ctx.lineTo(0,5); ctx.closePath(); ctx.fill();
+  }
+
+  // front paws
+  ctx.fillStyle = skin.bodyTop;
+  ctx.strokeStyle = skin.stroke; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(-8, 16 + legTuck, 4.5, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(8, 16 + legTuck, 4.5, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+  ctx.restore();
+
+  // combo aura
+  if (combo >= 3 && !animPhase){
+    ctx.save();
+    ctx.globalAlpha = 0.35 + Math.sin(runPhase*4)*0.15;
+    ctx.strokeStyle = '#ffb703';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x, y+2, 30, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawWolf(){
+  if (animPhase !== 'wolf' || !strip) return;
+  const pose = wolfPose();
+  const { vis, y, grab } = pose;
+  if (vis <= 0) return;
+
+  const holding = grab >= 0.999;
+  const wag = holding ? Math.sin(animTimer*0.5) * 0.5 : 0; // happy tail wag, not aggressive flick
+  const breathe = holding ? Math.sin(animTimer*0.15) * 0.03 : 0;
+  const earFlop = holding ? Math.sin(animTimer*0.4) * 0.1 : 0;
+  const blink = holding && (Math.floor(animTimer/3) % 55 === 0);
+
+  const x = LANE_X[wolfLane];
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, vis);
+  ctx.translate(x, y);
+  ctx.scale(1+breathe, 1-breathe*0.6);
+  const lunge = Math.sin(Math.min(1,grab)*Math.PI*0.5)*2;
+
+  // tail (happy wag, warm fluffy color)
+  ctx.save();
+  ctx.translate(-2, 20);
+  ctx.rotate(-0.35 + wag);
+  const tailGrad = ctx.createLinearGradient(0,0,0,18);
+  tailGrad.addColorStop(0,'#c98a4b'); tailGrad.addColorStop(1,'#a86a35');
+  ctx.fillStyle = tailGrad;
+  ctx.beginPath();
+  ctx.moveTo(-3,0); ctx.quadraticCurveTo(-13,3,-14,16); ctx.quadraticCurveTo(-7,13,-2,9); ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // round, soft body
+  const bodyGrad = ctx.createLinearGradient(0,6,0,26);
+  bodyGrad.addColorStop(0,'#e0a868'); bodyGrad.addColorStop(1,'#c98a4b');
+  ctx.fillStyle = bodyGrad;
+  ctx.strokeStyle = '#8a5228'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(0, 16, 13.5, 11, 0, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  // fluffy chest patch
+  ctx.fillStyle = '#f6e2b3';
+  ctx.beginPath(); ctx.ellipse(0, 19, 6.5, 6, 0, 0, Math.PI*2); ctx.fill();
+
+  // front paws gently holding the rabbit's ears (round, no claws)
+  const reach = grab;
+  [-1,1].forEach(side=>{
+    ctx.save();
+    ctx.strokeStyle = '#c98a4b';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    const px = side*8, py = 10;
+    const tx = side*(6 + reach*2), ty = 8 - reach*26;
+    ctx.beginPath(); ctx.moveTo(px,py); ctx.quadraticCurveTo(side*(9+reach*3), py-reach*12, tx, ty); ctx.stroke();
+    ctx.save();
+    ctx.translate(tx, ty);
+    ctx.fillStyle = '#e0a868';
+    ctx.strokeStyle = '#8a5228'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.ellipse(0,0,4,3.4,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    // soft toe bumps instead of claws
+    ctx.fillStyle = '#f6e2b3';
+    for (let c=-1;c<=1;c++){
+      ctx.beginPath(); ctx.ellipse(c*2.1,-1.6,1,1.3,0,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+    ctx.restore();
+  });
+
+  // ears (floppy, round tips — friendly puppy ears, not sharp)
+  ctx.fillStyle = '#c98a4b';
+  ctx.save(); ctx.rotate(0.18 + earFlop);
+  ctx.beginPath(); ctx.ellipse(-11,-8,5,10,0.3,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+  ctx.save(); ctx.rotate(-0.18 - earFlop);
+  ctx.beginPath(); ctx.ellipse(11,-8,5,10,-0.3,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle = '#f6c9a0';
+  ctx.save(); ctx.rotate(0.18 + earFlop);
+  ctx.beginPath(); ctx.ellipse(-11,-7,2.6,6.5,0.3,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+  ctx.save(); ctx.rotate(-0.18 - earFlop);
+  ctx.beginPath(); ctx.ellipse(11,-7,2.6,6.5,-0.3,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // round friendly head
+  const headGrad = ctx.createLinearGradient(0,-14,0,14);
+  headGrad.addColorStop(0,'#e8b578');
+  headGrad.addColorStop(1,'#c98a4b');
+  ctx.fillStyle = headGrad;
+  ctx.strokeStyle = '#8a5228';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(0,0,14,12.5,0,0,Math.PI*2);
+  ctx.fill(); ctx.stroke();
+
+  // blush cheeks
+  ctx.fillStyle = 'rgba(255,150,150,0.45)';
+  ctx.beginPath(); ctx.ellipse(-10,5,3,2,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(10,5,3,2,0,0,Math.PI*2); ctx.fill();
+
+  // soft eyebrows (curious, not angry)
+  ctx.strokeStyle = '#8a5228'; ctx.lineWidth = 1.6; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-9,-7); ctx.quadraticCurveTo(-6,-9,-3,-7.5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(9,-7); ctx.quadraticCurveTo(6,-9,3,-7.5); ctx.stroke();
+
+  // muzzle + gentle smiling mouth (no bared teeth)
+  ctx.fillStyle = '#f6e2b3';
+  ctx.beginPath();
+  ctx.ellipse(0, 5, 7.5, 6, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#8a5228'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-4, 6+lunge*0.3);
+  ctx.quadraticCurveTo(0, 9+lunge*0.6, 4, 6+lunge*0.3);
+  ctx.stroke();
+  // small pink tongue peeking out happily (only while holding)
+  if (grab > 0.5){
+    ctx.fillStyle = '#f4a0b3';
+    ctx.beginPath();
+    ctx.ellipse(0, 9+lunge*0.3, 2, 2.6, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+  // little nose
+  ctx.fillStyle = '#5a3417';
+  ctx.beginPath(); ctx.ellipse(0,2,2,1.5,0,0,Math.PI*2); ctx.fill();
+
+  // big round friendly eyes
+  if (blink){
+    ctx.strokeStyle = '#5a3417'; ctx.lineWidth = 1.6; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(-8,-2); ctx.lineTo(-4,-2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8,-2); ctx.lineTo(4,-2); ctx.stroke();
+  } else {
+    ctx.fillStyle = '#4a3220';
+    ctx.beginPath(); ctx.arc(-6,-2,3.2,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(6,-2,3.2,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(-7,-3.2,1,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(5,-3.2,1,0,Math.PI*2); ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+// A dedicated close-up "cutscene" — takes over the whole screen for ~3s to
+// actually show the wolf holding the rabbit as one connected scene (shared
+// shadow, an arm wrapped around the rabbit's body, a paw resting on its ears)
+// instead of two flat sprites simply stacked on the game field.
+function drawCutsceneCatch(u){
+  const cx = W/2, cy = H*0.46;
+  let scale;
+  if (u < 0.08) scale = lerp(0.55, 1, easeOutCubic(u/0.08));
+  else if (u > 0.92) scale = lerp(1, 0.55, easeInCubic((u-0.92)/0.08));
+  else scale = 1;
+
+  // cinematic dark backdrop
+  ctx.save();
+  const vg = ctx.createRadialGradient(cx,cy,40,cx,cy,H*0.75);
+  vg.addColorStop(0,'rgba(24,40,28,0.35)');
+  vg.addColorStop(1,'rgba(8,16,12,0.82)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0,0,W,H);
+  ctx.restore();
+
+  // quick flash for the "gotcha" cut
+  if (u < 0.05){
+    ctx.save();
+    ctx.globalAlpha = (1 - u/0.05) * 0.55;
+    ctx.fillStyle = '#fff7e0';
+    ctx.fillRect(0,0,W,H);
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(scale, scale);
+
+  const idle = animTimer;
+  const wag = Math.sin(idle*0.12) * 0.35;
+  const breathe = Math.sin(idle*0.09) * 0.02;
+  const dizzy = idle * 0.12;
+  ctx.scale(1+breathe, 1-breathe*0.6);
+
+  // shared ground shadow
+  ctx.save();
+  ctx.globalAlpha = 0.25;
+  ctx.fillStyle = '#1c3d2e';
+  ctx.beginPath(); ctx.ellipse(4, 58, 46, 12, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // === wolf, sitting, holding the rabbit ===
+  ctx.save();
+  ctx.translate(6, 4);
+
+  ctx.save();
+  ctx.translate(28, 30);
+  ctx.rotate(0.6 + wag*0.6);
+  const tailGrad = ctx.createLinearGradient(0,0,0,26);
+  tailGrad.addColorStop(0,'#c98a4b'); tailGrad.addColorStop(1,'#a86a35');
+  ctx.fillStyle = tailGrad;
+  ctx.beginPath();
+  ctx.moveTo(-3,0); ctx.quadraticCurveTo(16,2,20,20); ctx.quadraticCurveTo(10,18,-2,12); ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  const bodyGrad = ctx.createLinearGradient(0,10,0,50);
+  bodyGrad.addColorStop(0,'#e8b578'); bodyGrad.addColorStop(1,'#c98a4b');
+  ctx.fillStyle = bodyGrad;
+  ctx.strokeStyle = '#8a5228'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.ellipse(0, 34, 30, 26, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#f6e2b3';
+  ctx.beginPath(); ctx.ellipse(0, 38, 14, 16, 0, 0, Math.PI*2); ctx.fill();
+
+  // far arm wrapping behind/around the rabbit
+  ctx.fillStyle = '#e0a868'; ctx.strokeStyle = '#8a5228'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.ellipse(-24, 26, 9, 7, 0.5, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+  ctx.save();
+  ctx.translate(0, -12);
+  ctx.fillStyle = '#c98a4b';
+  ctx.save(); ctx.rotate(0.18); ctx.beginPath(); ctx.ellipse(-18,-14,8,17,0.3,0,Math.PI*2); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.rotate(-0.18); ctx.beginPath(); ctx.ellipse(18,-14,8,17,-0.3,0,Math.PI*2); ctx.fill(); ctx.restore();
+  ctx.fillStyle = '#f6c9a0';
+  ctx.save(); ctx.rotate(0.18); ctx.beginPath(); ctx.ellipse(-18,-12,4.2,11,0.3,0,Math.PI*2); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.rotate(-0.18); ctx.beginPath(); ctx.ellipse(18,-12,4.2,11,-0.3,0,Math.PI*2); ctx.fill(); ctx.restore();
+
+  const headGrad = ctx.createLinearGradient(0,-22,0,22);
+  headGrad.addColorStop(0,'#e8b578'); headGrad.addColorStop(1,'#c98a4b');
+  ctx.fillStyle = headGrad; ctx.strokeStyle = '#8a5228'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.ellipse(0,0,23,20,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+
+  ctx.fillStyle = 'rgba(255,150,150,0.45)';
+  ctx.beginPath(); ctx.ellipse(-16,8,5,3.2,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(16,8,5,3.2,0,0,Math.PI*2); ctx.fill();
+
+  ctx.strokeStyle = '#8a5228'; ctx.lineWidth = 2.2; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-15,-12); ctx.quadraticCurveTo(-9,-16,-4,-13); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(15,-12); ctx.quadraticCurveTo(9,-16,4,-13); ctx.stroke();
+
+  ctx.fillStyle = '#f6e2b3';
+  ctx.beginPath(); ctx.ellipse(0,8,12,9.5,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#8a5228'; ctx.lineWidth = 2.2; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-9,9); ctx.quadraticCurveTo(0,17,9,9); ctx.stroke();
+  ctx.fillStyle = '#f4a0b3';
+  ctx.beginPath(); ctx.ellipse(0,14,3,3.6,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#5a3417';
+  ctx.beginPath(); ctx.ellipse(0,3,3,2.2,0,0,Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = '#4a3220';
+  ctx.beginPath(); ctx.arc(-9,-2,4.6,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(9,-2,4.6,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(-10.6,-3.8,1.5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(7.4,-3.8,1.5,0,Math.PI*2); ctx.fill();
+  ctx.restore(); // head
+
+  ctx.restore(); // wolf body
+
+  // === rabbit, nestled against the wolf's chest, dizzy from the catch ===
+  ctx.save();
+  ctx.translate(-8, 6);
+  ctx.rotate(-0.18);
+
+  const cutSkin = curSkin();
+  const bunnyGrad = ctx.createLinearGradient(0,-14,0,16);
+  bunnyGrad.addColorStop(0,cutSkin.bodyTop); bunnyGrad.addColorStop(1,cutSkin.bodyBottom);
+  ctx.fillStyle = bunnyGrad; ctx.strokeStyle = cutSkin.stroke; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.ellipse(0,6,15,17,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+
+  [0.9, 1.25].forEach((rot,i)=>{
+    ctx.save(); ctx.rotate(rot);
+    const ex = i===0 ? -4 : 2;
+    ctx.fillStyle = cutSkin.earOuter; ctx.strokeStyle = cutSkin.stroke; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.ellipse(ex,-20,4.6,13,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = cutSkin.earInner;
+    ctx.beginPath(); ctx.ellipse(ex,-19,2.4,8.5,0,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  });
+
+  ctx.strokeStyle = '#2e2418'; ctx.lineWidth = 1.4; ctx.lineCap='round';
+  [-6,6].forEach(ex=>{
+    ctx.save();
+    ctx.translate(ex,0);
+    ctx.beginPath();
+    for (let a=0; a<Math.PI*3.4; a+=0.35){
+      const r = a*0.7;
+      const px = Math.cos(a+dizzy)*r*0.35, py = Math.sin(a+dizzy)*r*0.35;
+      if (a===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+    ctx.restore();
+  });
+  ctx.fillStyle = '#ff9fb3';
+  ctx.beginPath(); ctx.ellipse(-9,5,2.6,1.8,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(9,5,2.6,1.8,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#e8869e';
+  ctx.beginPath(); ctx.ellipse(0,4,2.6,3.4,0,0,Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = cutSkin.bodyTop; ctx.strokeStyle = cutSkin.stroke; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.ellipse(-11,16,4,3.4,0.3,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(11,16,4,3.4,-0.3,0,Math.PI*2); ctx.fill(); ctx.stroke();
+
+  ctx.restore(); // rabbit
+
+  // wolf's near paw resting on the rabbit's ears — drawn last so it visibly overlaps both
+  ctx.save();
+  ctx.translate(-6, -18);
+  ctx.rotate(0.5);
+  ctx.fillStyle = '#e0a868'; ctx.strokeStyle = '#8a5228'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.ellipse(0,0,9,7,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#f6e2b3';
+  for (let c=-1;c<=1;c++){
+    ctx.beginPath(); ctx.ellipse(c*4.4,-4.4,2.2,3,0,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+
+  // little sparkles orbiting the rabbit's dizzy head
+  for (let i=0;i<3;i++){
+    const ang = dizzy*1.4 + i*(Math.PI*2/3);
+    const sx = -8 + Math.cos(ang)*16, sy = -20 + Math.sin(ang)*6;
+    ctx.save();
+    ctx.translate(sx,sy);
+    ctx.rotate(ang);
+    ctx.fillStyle = '#ffd166';
+    ctx.beginPath();
+    ctx.moveTo(0,-4); ctx.lineTo(1.2,-1.2); ctx.lineTo(4,0); ctx.lineTo(1.2,1.2);
+    ctx.lineTo(0,4); ctx.lineTo(-1.2,1.2); ctx.lineTo(-4,0); ctx.lineTo(-1.2,-1.2);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.restore(); // camera transform
+
+  // caption
+  const capPop = u<0.1 ? easeOutCubic(u/0.1) : 1;
+  const capAlpha = u<0.06 ? u/0.06 : (u>0.94 ? (1-u)/0.06 : 1);
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, capAlpha);
+  ctx.translate(W/2, H*0.86);
+  ctx.scale(0.7+0.3*capPop, 0.7+0.3*capPop);
+  ctx.fillStyle = 'rgba(20,30,20,0.55)';
+  roundRect(ctx, -112, -20, 224, 36, 18);
+  ctx.fill();
+  ctx.fillStyle = '#fff7e0';
+  ctx.font = 'bold 17px Segoe UI';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('🐺 Sói tóm được Thỏ rồi!', 0, 0);
+  ctx.restore();
+}
+
+function drawStrip(){
+  if (!strip) return;
+  const railH = 34;
+
+  // ground shadow cast by the fence
+  ctx.save();
+  ctx.globalAlpha = 0.14;
+  ctx.fillStyle = '#1c3d2e';
+  ctx.fillRect(0, strip.y+railH/2, W, 6);
+  ctx.restore();
+
+  ctx.save();
+  // horizontal wooden rail spanning the whole width
+  const railGrad = ctx.createLinearGradient(0, strip.y-railH/2, 0, strip.y+railH/2);
+  railGrad.addColorStop(0, '#c98a4b');
+  railGrad.addColorStop(0.5, '#a86a35');
+  railGrad.addColorStop(1, '#8a5228');
+  ctx.fillStyle = railGrad;
+  ctx.fillRect(0, strip.y-railH/2, W, railH);
+
+  // wood grain streaks
+  ctx.strokeStyle = 'rgba(90,50,20,0.3)';
+  ctx.lineWidth = 1;
+  for (let i=0;i<5;i++){
+    const yy = strip.y - railH/2 + 5 + i*6;
+    ctx.beginPath();
+    ctx.moveTo(0, yy + Math.sin(i*1.7)*1.5);
+    ctx.lineTo(W, yy + Math.cos(i*1.3)*1.5);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = '#6b3f1d';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, strip.y-railH/2); ctx.lineTo(W, strip.y-railH/2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, strip.y+railH/2); ctx.lineTo(W, strip.y+railH/2); ctx.stroke();
+
+  // fence posts at both edges and lane boundaries
+  [8, W/3, 2*W/3, W-8].forEach(px=>{
+    const postGrad = ctx.createLinearGradient(px-6,0,px+6,0);
+    postGrad.addColorStop(0,'#8a5228');
+    postGrad.addColorStop(0.5,'#6b3f1d');
+    postGrad.addColorStop(1,'#7a4a24');
+    ctx.fillStyle = postGrad;
+    ctx.fillRect(px-6, strip.y-railH/2-8, 12, railH+16);
+    ctx.strokeStyle = '#4a2c12';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(px-6, strip.y-railH/2-8, 12, railH+16);
+    // post cap
+    ctx.beginPath();
+    ctx.moveTo(px-7, strip.y-railH/2-8);
+    ctx.lineTo(px, strip.y-railH/2-14);
+    ctx.lineTo(px+7, strip.y-railH/2-8);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+  });
+  ctx.restore();
+
+  // hanging number signs, nailed to the rail with a swinging wobble
+  strip.options.forEach(o=>{
+    const x = LANE_X[o.lane];
+    ctx.save();
+    ctx.translate(x, strip.y);
+
+    const wobble = Math.sin(runPhase*1.3 + o.lane*2) * 0.035;
+
+    // rope/nail links from the rail down to the sign
+    ctx.strokeStyle = '#5a3417';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-13, -railH/2); ctx.lineTo(-10 + Math.sin(wobble)*4, 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(13, -railH/2); ctx.lineTo(10 + Math.sin(wobble)*4, 2); ctx.stroke();
+
+    ctx.rotate(wobble);
+    ctx.translate(0, 12);
+
+    const signGrad = ctx.createLinearGradient(0,-22,0,22);
+    signGrad.addColorStop(0, '#f6e2b3');
+    signGrad.addColorStop(1, '#e0bd7c');
+    ctx.fillStyle = signGrad;
+    ctx.strokeStyle = '#8a5228';
+    ctx.lineWidth = 3;
+    ctx.shadowColor = 'rgba(0,0,0,0.2)';
+    ctx.shadowBlur = 6;
+    roundRect(ctx, -34, -22, 68, 44, 6);
+    ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // faint plank grain on the sign
+    ctx.strokeStyle = 'rgba(140,90,40,0.25)';
+    ctx.lineWidth = 1;
+    for (let i=0;i<3;i++){
+      ctx.beginPath();
+      ctx.moveTo(-30, -10+i*12);
+      ctx.lineTo(30, -10+i*12 + (i%2?2:-2));
+      ctx.stroke();
+    }
+    // corner nails
+    ctx.fillStyle = '#6b6b6b';
+    [[-28,-16],[28,-16],[-28,16],[28,16]].forEach(([nx,ny])=>{
+      ctx.beginPath(); ctx.arc(nx,ny,1.8,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#9a9a9a';
+      ctx.beginPath(); ctx.arc(nx-0.4,ny-0.4,0.6,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#6b6b6b';
+    });
+
+    ctx.fillStyle = '#5a3417';
+    ctx.font = 'bold 24px Segoe UI';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(o.val, 0, 3);
+    ctx.restore();
+  });
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  drawClouds();
+  drawDeco();
+  drawLanes();
+  particles.forEach(p=>{
+    const alpha = Math.max(0,p.life/p.maxLife);
+    ctx.fillStyle = `rgba(${p.color},${alpha})`;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r*alpha+0.5,0,Math.PI*2); ctx.fill();
+  });
+
+  const inCutscene = animPhase === 'wolf' && animTimer >= WOLF_LUNGE_END && animTimer < WOLF_CUTSCENE_END;
+
+  if (inCutscene){
+    const u = (animTimer - WOLF_LUNGE_END) / (WOLF_CUTSCENE_END - WOLF_LUNGE_END);
+    drawCutsceneCatch(u);
+  } else {
+    const jumpTNow = (animPhase==='jump' && animTotal) ? animTimer/animTotal : 0;
+    const behindFence = animPhase==='jump' && jumpTNow < 0.5;
+    if (behindFence){
+      drawChar();
+      drawStrip();
+    } else {
+      drawStrip();
+      drawChar();
+    }
+    if (animPhase === 'wolf') drawWolf();
+  }
+
+  popups.forEach(p=>{
+    const alpha = Math.max(0,p.life/p.maxLife);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = p.color;
+    ctx.font = 'bold 20px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText(p.text, p.x, p.y);
+    ctx.restore();
+  });
+}
+
+function loop(){
+  if (running){ update(); draw(); }
+  else draw();
+  requestAnimationFrame(loop);
+}
+
+startBtn.onclick = () => {
+  if (selectedTables.size === 0){
+    hintEl.textContent = '⚠️ Hãy chọn ít nhất 1 bảng cửu chương trước khi bắt đầu!';
+    hintEl.style.color = '#e14848';
+    return;
+  }
+  ensureAudio();
+  overlay.style.display = 'none';
+  initState();
+  running = true;
+  newProblem();
+  spawnStrip();
+};
+
+initState();
+draw();
+loop();
+</script>
+</body>
+</html>
